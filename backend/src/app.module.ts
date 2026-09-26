@@ -8,6 +8,6 @@ import { TranslationModule } from './modules/translation/translation.module';
 @Module({
   imports: [CatalogModule, RfqModule, TranslationModule],
   controllers: [AppController],
-  providers:---
-
-پس از ثبت این مراحل، تمام ۳ ماژول هسته تجاری (`catalog`، `rfq` و `translation`) آماده خواهند بود و می‌توانیم به سراغ ماژول احراز هویت / پروفایل تجاری KYB (`auth`) برویم.
+  providers: [AppService],
+})
+export class AppModule {}
