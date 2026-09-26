@@ -4,9 +4,10 @@ import { AppService } from './app.service';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { RfqModule } from './modules/rfq/rfq.module';
 import { TranslationModule } from './modules/translation/translation.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
-  imports: [CatalogModule, RfqModule, TranslationModule],
+  imports: [CatalogModule, RfqModule, TranslationModule, AuthModule],
   controllers: [AppController],
   providers: [AppService],
 })
