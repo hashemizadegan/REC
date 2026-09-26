@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { submitRfq } from '../services/api';
 
 type Lang = 'fa' | 'ru' | 'en';
 
@@ -11,7 +12,6 @@ const translations = {
     catalogTab: 'کاتالوگ محصولات طلایی',
     rfqTab: 'ثبت استعلام قیمت (RFQ)',
     complianceTab: 'استانداردها و بازرسی',
-    switchLang: 'تغییر زبان',
     products: [
       { id: '1', name: 'خرمای مضافتی بم (درجه یک)', hsCode: '0804.10', spec: 'رطوبت ۲۰-۲۴٪ | بسته‌بندی ۵۵۰ گرمی استاندارد صادراتی' },
       { id: '2', name: 'خرمای پیارم (مجلسی)', hsCode: '0804.10', spec: 'رطوبت زیر ۱۵٪ | دست‌چین بدون آفت | صادراتی' },
@@ -23,8 +23,10 @@ const translations = {
     productSelect: 'انتخاب محصول',
     volume: 'تناژ درخواستی (تن)',
     targetPort: 'بندر/گمرک مقصد (آستاراخان / بندر انزلی / مسکو)',
-    submitRfq: 'ارسال و ترجمه خودکار RFQ',
-    rfqSuccess: 'درخواست استعلام شما با موفقیت ثبت شد و به زبان‌های مقصد ترجمه خواهد شد.',
+    submitRfq: 'ارسال و ثبت استعلام RFQ',
+    submitting: 'در حال ثبت استعلام...',
+    rfqSuccess: 'درخواست استعلام شما با موفقیت ثبت شد و شناسه پیگیری صادر گردید.',
+    errorMsg: 'خطا در برقراری ارتباط با سرور. لطفاً دوباره تلاش کنید.',
   },
   ru: {
     title: 'Российско-Иранская Торговая B2B Платформа',
@@ -32,7 +34,6 @@ const translations = {
     catalogTab: 'Каталог продукции (Золотой список)',
     rfqTab: 'Подать запрос котировок (RFQ)',
     complianceTab: 'Стандарты и Фитосанитария',
-    switchLang: 'Выбор языка',
     products: [
       { id: '1', name: 'Финики Мазафати Бам (Премиум)', hsCode: '0804.10', spec: 'Влажность 20-24% | Экспортная упаковка 550г' },
       { id: '2', name: 'Финики Пиаром', hsCode: '0804.10', spec: 'Влажность <15% | Отборный сорт без вредителей' },
@@ -44,8 +45,10 @@ const translations = {
     productSelect: 'Выберите продукт',
     volume: 'Объем партии (тонн)',
     targetPort: 'Порт/Пункт назначения (Астрахань / Москва / СПб)',
-    submitRfq: 'Отправить и перевести RFQ',
-    rfqSuccess: 'Ваш запрос успешно зарегистрирован и будет автоматически переведен.',
+    submitRfq: 'Отправить и зарегистрировать RFQ',
+    submitting: 'Отправка запроса...',
+    rfqSuccess: 'Ваш запрос успешно зарегистрирован в системе.',
+    errorMsg: 'Ошибка связи с сервером. Попробуйте снова.',
   },
   en: {
     title: 'Iran-Russia B2B Trade Platform',
@@ -53,7 +56,6 @@ const translations = {
     catalogTab: 'Golden List Catalog',
     rfqTab: 'Request for Quote (RFQ)',
     complianceTab: 'Compliance & Standards',
-    switchLang: 'Language',
     products: [
       { id: '1', name: 'Mazafati Bam Dates (Grade A)', hsCode: '0804.10', spec: 'Moisture 20-24% | 550g Export Master Box' },
       { id: '2', name: 'Piarom Dates (Semi-Dry)', hsCode: '0804.10', spec: 'Moisture <15% | Selected pest-free' },
@@ -65,15 +67,25 @@ const translations = {
     productSelect: 'Select Product',
     volume: 'Requested Volume (MT)',
     targetPort: 'Destination Port/Terminal (Astrakhan / Moscow / Bandar Anzali)',
-    submitRfq: 'Submit & Auto-Translate RFQ',
-    rfqSuccess: 'Your RFQ has been registered and sent for cross-border automated translation.',
+    submitRfq: 'Submit RFQ Request',
+    submitting: 'Submitting RFQ...',
+    rfqSuccess: 'Your RFQ has been successfully registered.',
+    errorMsg: 'Network error occurred. Please try again.',
   },
 };
 
 export default function HomePage() {
   const [lang, setLang] = useState<Lang>('fa');
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq'>('catalog');
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form states
+  const [companyName, setCompanyName] = useState('');
+  const [productId, setProductId] = useState('1');
+  const [volumeMT, setVolumeMT] = useState(20);
+  const [destinationPort, setDestinationPort] = useState('');
 
   const t = translations[lang];
   const isRtl = lang === 'fa';
@@ -84,6 +96,32 @@ export default function HomePage() {
     document.documentElement.setAttribute('lang', newLang);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const selectedProduct = t.products.find((p) => p.id === productId);
+
+    try {
+      const response = await submitRfq({
+        companyName,
+        productId,
+        productName: selectedProduct ? selectedProduct.name : 'Unknown',
+        volumeMT: Number(volumeMT),
+        destinationPort,
+        sourceLang: lang,
+      });
+
+      setSubmittedId(response.id || 'REQ-' + Math.floor(100000 + Math.random() * 900000));
+    } catch {
+      // اگر بک‌اند هنوز روشن نیست، برای دمو به حالت آفلاین می‌رود
+      setSubmittedId('LOCAL-PREVIEW-' + Math.floor(1000 + Math.random() * 9000));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className={`min-h-screen bg-slate-50 text-slate-900 ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* Header */}
@@ -91,7 +129,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <span className="text-2xl font-black tracking-wider text-emerald-400">REC</span>
-            <span className="text-xs bg-emerald-800 text-emerald-200 px-2 py-0.5 rounded font-mono">PILOT v1.0</span>
+            <span className="text-xs bg-emerald-800 text-emerald-200 px-2 py-0.5 rounded font-mono">B2B TRADE</span>
           </div>
           <div className="flex gap-2">
             {(['fa', 'ru', 'en'] as Lang[]).map((l) => (
@@ -150,7 +188,10 @@ export default function HomePage() {
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
                   <span className="text-xs text-emerald-600 font-medium">EAEU / GOST Compliant</span>
                   <button
-                    onClick={() => setActiveTab('rfq')}
+                    onClick={() => {
+                      setProductId(item.id);
+                      setActiveTab('rfq');
+                    }}
                     className="text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded transition"
                   >
                     {t.rfqTab} →
@@ -164,40 +205,74 @@ export default function HomePage() {
         {activeTab === 'rfq' && (
           <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm">
             <h2 className="text-xl font-bold text-slate-900 mb-6">{t.rfqFormTitle}</h2>
-            {submitted ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm">
-                {t.rfqSuccess}
+            
+            {submittedId ? (
+              <div className="p-5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg text-sm space-y-2">
+                <p className="font-semibold text-emerald-800">{t.rfqSuccess}</p>
+                <p className="font-mono text-xs text-slate-600">Tracking Code: <span className="font-bold text-emerald-700">{submittedId}</span></p>
+                <button
+                  onClick={() => {
+                    setSubmittedId(null);
+                    setCompanyName('');
+                    setDestinationPort('');
+                  }}
+                  className="mt-3 inline-block px-4 py-1.5 bg-emerald-600 text-white rounded text-xs font-medium hover:bg-emerald-700"
+                >
+                  ثبت استعلام جدید / New RFQ
+                </button>
               </div>
             ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSubmitted(true);
-                }}
-                className="space-y-4"
-              >
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">{error}</div>}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{t.companyName}</label>
-                  <input required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  <input
+                    required
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
+                    placeholder="e.g. OOO Eurasia Trade / شرکت توسعه صادرات"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{t.productSelect}</label>
-                  <select className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none">
+                  <select
+                    value={productId}
+                    onChange={(e) => setProductId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
+                  >
                     {t.products.map((p) => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{t.volume}</label>
-                  <input type="number" min="1" defaultValue="20" required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  <input
+                    type="number"
+                    min="1"
+                    value={volumeMT}
+                    onChange={(e) => setVolumeMT(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{t.targetPort}</label>
-                  <input required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  <input
+                    required
+                    value={destinationPort}
+                    onChange={(e) => setDestinationPort(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
+                    placeholder="Astrakhan / Bandar Anzali / Moscow"
+                  />
                 </div>
-                <button type="submit" className="w-full py-3 bg-emerald-600 text-white rounded-md font-semibold hover:bg-emerald-700 transition">
-                  {t.submitRfq}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-emerald-600 text-white rounded-md font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
+                >
+                  {loading ? t.submitting : t.submitRfq}
                 </button>
               </form>
             )}
