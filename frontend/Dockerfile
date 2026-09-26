@@ -14,7 +14,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public 2>/dev/null || true
