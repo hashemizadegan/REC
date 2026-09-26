@@ -1,9 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { AppConfig } from './config/env.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-  console.log(`REC Backend running on port 3000`);
+  app.enableCors(); // اجازه به فرانت‌اند برای فراخوانی APIها
+  
+  const port = AppConfig.port;
+  await app.listen(port);
+  console.log(`REC Platform backend running on: http://localhost:${port}`);
 }
 bootstrap();
