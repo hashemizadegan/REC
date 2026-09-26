@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rec-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rec}
+      POSTGRES_USER: ${POSTGRES_USER:-rec_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rec_secure_password_2026}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rec_user} -d ${POSTGRES_DB:-rec}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: rec-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-rec}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-rec_user}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-rec_secure_password_2026}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-rec_n8n_encryption_key_32bytes}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  postgres_data:
+  n8n_data:
