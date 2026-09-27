@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 type LangCode = 'fa' | 'ru' | 'en';
 type ModalType = 'login' | 'register' | null;
 
-type SessionData = {
+interface UserAccount {
   id: string;
   companyName: string;
   email: string;
@@ -14,15 +14,15 @@ type SessionData = {
   kybStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
   isGoldenList: boolean;
   role: 'COMPANY' | 'ADMIN';
-};
+}
 
-type LogEntry = {
+interface AuditLog {
   id: string;
   timestamp: string;
   action: string;
   actorEmail: string;
   details: string;
-};
+}
 
 const DICT = {
   fa: {
@@ -209,7 +209,7 @@ export default function RECMainPage() {
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
   const [authModal, setAuthModal] = useState<ModalType>(null);
 
-  const [activeUser, setActiveUser] = useState<SessionData | null>(null);
+  const [activeUser, setActiveUser] = useState<UserAccount | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -259,7 +259,7 @@ export default function RECMainPage() {
     },
   ]);
 
-  const [auditLogs, setAuditLogs] = useState<LogEntry[]>([
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
     {
       id: 'log-1',
       timestamp: new Date().toLocaleTimeString(),
@@ -299,7 +299,7 @@ export default function RECMainPage() {
     if (!loginEmail || !loginPassword) return;
 
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: SessionData = {
+      const adminSession: UserAccount = {
         id: 'admin-1',
         companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
@@ -317,7 +317,7 @@ export default function RECMainPage() {
       return;
     }
 
-    const session: SessionData = {
+    const session: UserAccount = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -362,7 +362,7 @@ export default function RECMainPage() {
       ...prev,
     ]);
 
-    const session: SessionData = {
+    const session: UserAccount = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -566,28 +566,6 @@ export default function RECMainPage() {
                   <h3 className="text-xl font-bold text-white mb-2">{t.p1Name}</h3>
                   <p className="text-xs text-slate-300">{t.p1Desc}</p>
                 </div>
-                <div className="mt-6 pt-4 border-t borderactiveUser && (
-              <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex flex-wrap items-center justify-between gap-3">
-                <span>{t.catalogNotice}</span>
-                <button
-                  onClick={() => setAuthModal('login')}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs transition"
-                >
-                  {t.loginToOrder}
-                </button>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080251</span>
-                    <span className="text-xs text-slate-400">{t.p1Origin}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t.p1Name}</h3>
-                  <p className="text-xs text-slate-300">{t.p1Desc}</p>
-                </div>
                 <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
                   <span className="text-xs text-slate-400">{t.minVolume}</span>
                   <button
@@ -595,7 +573,37 @@ export default function RECMainPage() {
                       setSelectedProduct('pistachio-akbari');
                       setActiveTab('rfq');
                     }}
-                    className</div>
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-xs transition"
+                  >
+                    {t.rfqBtn}
+                  </button>
+                </div>
+              </div>
+
+              <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080410</span>
+                    <span className="text-xs text-slate-400">{t.p2Origin}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{t.p2Name}</h3>
+                  <p className="text-xs text-slate-300">{t.p2Desc}</p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs text-slate-400">{t.minVolume}</span>
+                  <button
+                    onClick={() => {
+                      setSelectedProduct('dates-mazafati');
+                      setActiveTab('rfq');
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-xs transition"
+                  >
+                    {t.rfqBtn}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* فرم استعلام RFQ */}
@@ -732,9 +740,4 @@ export default function RECMainPage() {
                           >
                             {c.kybStatus === 'VERIFIED'
                               ? t.kybVerified
-                              : c.kybStatus === 'REJECTED'
-                              ? t.kybRejected
-                              : t.kybPending}
-                          </span>
-                        </td>
-                        <td className="p-
+                              : c.kybStatus === 'REJECT
