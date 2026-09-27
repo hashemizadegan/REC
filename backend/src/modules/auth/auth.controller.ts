@@ -31,16 +31,28 @@ export class AuthController {
 
   @Get('companies')
   async getAllCompanies(@Headers('authorization') authHeader: string) {
-    // مشاهده لیست شرکت‌ها تنها برای کاربران لاگین‌شده
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('دسترسی مجاز نیست.');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = this.authService.verifyToken(token);
+    if (!decoded || decoded.role !== 'ADMIN') {
+      throw new ForbiddenException('فقط مدیر سامانه اجازه مشاهده لیست کلیه شرکت‌ها را دارد.');
     }
     return this.authService.getAllCompanies();
   }
 
-  @Get('companies/:id')
-  async getCompanyById(@Param('id') id: string) {
-    return this.authService.getCompanyById(id);
+  @Get('audit-logs')
+  async getAuditLogs(@Headers('authorization') authHeader: string) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('دسترسی مجاز نیست.');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = this.authService.verifyToken(token);
+    if (!decoded || decoded.role !== 'ADMIN') {
+      throw new ForbiddenException('تنها مدیر سامانه می‌تواند لاگ وقایع را ببیند.');
+    }
+    return this.authService.getAuditLogs();
   }
 
   @Patch('companies/:id/kyb')
@@ -58,6 +70,6 @@ export class AuthController {
     if (!decoded || decoded.role !== 'ADMIN') {
       throw new ForbiddenException('فقط مدیر سامانه (Admin) اجازه تغییر وضعیت KYB را دارد.');
     }
-    return this.authService.updateKybStatus(id, status, isGoldenListMember);
+    return this.authService.updateKybStatus(id, status, isGoldenListMember, decoded.email);
   }
 }
