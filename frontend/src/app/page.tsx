@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 
-type LangCode = 'fa' | 'ru' | 'en';
-type ModalType = 'login' | 'register' | null;
+type Lang = 'fa' | 'ru' | 'en';
+type ModalMode = 'login' | 'register' | null;
 
-interface UserAccount {
+interface RecProfile {
   id: string;
   companyName: string;
   email: string;
@@ -16,7 +16,7 @@ interface UserAccount {
   role: 'COMPANY' | 'ADMIN';
 }
 
-interface AuditLog {
+interface ActivityItem {
   id: string;
   timestamp: string;
   action: string;
@@ -202,14 +202,14 @@ const DICT = {
 };
 
 export default function RECMainPage() {
-  const [lang, setLang] = useState<LangCode>('fa');
+  const [lang, setLang] = useState<Lang>('fa');
   const t = DICT[lang];
   const isRtl = lang === 'fa';
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
-  const [authModal, setAuthModal] = useState<ModalType>(null);
+  const [authModal, setAuthModal] = useState<ModalMode>(null);
 
-  const [activeUser, setActiveUser] = useState<UserAccount | null>(null);
+  const [activeUser, setActiveUser] = useState<RecProfile | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -259,7 +259,7 @@ export default function RECMainPage() {
     },
   ]);
 
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
+  const [auditLogs, setAuditLogs] = useState<ActivityItem[]>([
     {
       id: 'log-1',
       timestamp: new Date().toLocaleTimeString(),
@@ -299,7 +299,7 @@ export default function RECMainPage() {
     if (!loginEmail || !loginPassword) return;
 
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: UserAccount = {
+      const adminSession: RecProfile = {
         id: 'admin-1',
         companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
@@ -317,7 +317,7 @@ export default function RECMainPage() {
       return;
     }
 
-    const session: UserAccount = {
+    const session: RecProfile = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -362,7 +362,7 @@ export default function RECMainPage() {
       ...prev,
     ]);
 
-    const session: UserAccount = {
+    const session: RecProfile = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -437,7 +437,7 @@ export default function RECMainPage() {
           <div className="flex items-center gap-3">
             {/* انتخاب زبان */}
             <div className="flex rounded-md bg-slate-800 p-1 border border-slate-700 text-xs">
-              {(['fa', 'ru', 'en'] as LangCode[]).map((l) => (
+              {(['fa', 'ru', 'en'] as Lang[]).map((l) => (
                 <button
                   key={l}
                   onClick={() => setLang(l)}
@@ -740,4 +740,192 @@ export default function RECMainPage() {
                           >
                             {c.kybStatus === 'VERIFIED'
                               ? t.kybVerified
-                              : c.kybStatus === 'REJECT
+                              : c.kybStatus === 'REJECTED'
+                              ? t.kybRejected
+                              : t.kybPending}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
+                            >
+                              {t.verifyAction}
+                            </button>
+                            <button
+                              onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
+                              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
+                            >
+                              {t.rejectAction}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* لاگ وقایع */}
+            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
+              <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {auditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-4 text-xs font-mono"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
+                      <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                        {log.action}
+                      </span>
+                      <span className="text-slate-300">{log.details}</span>
+                    </div>
+                    <span className="text-slate-500 text-[11px] shrink-0">{log.actorEmail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* مودال احراز هویت */}
+      {authModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-sm text-white">
+                {authModal === 'login' ? t.modalLoginTitle : t.modalRegTitle}
+              </h3>
+              <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
+                ✕
+              </button>
+            </div>
+
+            {authModal === 'login' ? (
+              <form onSubmit={handleLoginSubmit} className="space-y-4 mt-5 text-xs">
+                <div>
+                  <label className="block text-slate-300 mb-1.5">{t.emailLabel}</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@rec-trade.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1.5">{t.passwordLabel}</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
+                >
+                  {t.modalLoginBtn}
+                </button>
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAuthModal('register')}
+                    className="text-emerald-400 hover:underline text-xs"
+                  >
+                    {t.modalSwitchToReg}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleRegisterSubmit} className="space-y-3 mt-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 mb-1">{t.companyNameLabel}</label>
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 mb-1">{t.countryLabel}</label>
+                    <select
+                      value={regCountry}
+                      onChange={(e) => setRegCountry(e.target.value as 'IR' | 'RU')}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                    >
+                      <option value="IR">{t.iran}</option>
+                      <option value="RU">{t.russia}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 mb-1">{t.taxIdLabel}</label>
+                    <input
+                      type="text"
+                      required
+                      value={regTaxId}
+                      onChange={(e) => setRegTaxId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">{t.emailLabel}</label>
+                  <input
+                    type="email"
+                    required
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">{t.phoneLabel}</label>
+                  <input
+                    type="tel"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">{t.passwordLabel}</label>
+                  <input
+                    type="password"
+                    required
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
+                >
+                  {t.modalRegBtn}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* فوتر */}
+      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        REC Platform &copy; 2026 — Russia-Iran Cross-Border Settlement & Trade Gateway
+      </footer>
+    </div>
+  );
+}
