@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 
-type Language = 'fa' | 'ru' | 'en';
-type AuthMode = 'login' | 'register' | null;
+type LangCode = 'fa' | 'ru' | 'en';
+type ModalType = 'login' | 'register' | null;
 
-interface UserAccount {
+type SessionData = {
   id: string;
   companyName: string;
   email: string;
@@ -14,17 +14,17 @@ interface UserAccount {
   kybStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
   isGoldenList: boolean;
   role: 'COMPANY' | 'ADMIN';
-}
+};
 
-interface AuditLogItem {
+type LogEntry = {
   id: string;
   timestamp: string;
   action: string;
   actorEmail: string;
   details: string;
-}
+};
 
-const TRANSLATIONS = {
+const DICT = {
   fa: {
     siteTitle: 'سامانه بازرگانی ایران و روسیه (REC)',
     siteSubtitle: 'مرکز تسویه ارزی و ثبت سفارشات کالایی B2B',
@@ -201,15 +201,15 @@ const TRANSLATIONS = {
   },
 };
 
-export default function HomePage() {
-  const [lang, setLang] = useState<Language>('fa');
-  const t = TRANSLATIONS[lang];
+export default function RECMainPage() {
+  const [lang, setLang] = useState<LangCode>('fa');
+  const t = DICT[lang];
   const isRtl = lang === 'fa';
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
-  const [authModal, setAuthModal] = useState<AuthMode>(null);
+  const [authModal, setAuthModal] = useState<ModalType>(null);
 
-  const [user, setUser] = useState<UserAccount | null>(null);
+  const [activeUser, setActiveUser] = useState<SessionData | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -227,7 +227,16 @@ export default function HomePage() {
   const [targetPrice, setTargetPrice] = useState('9200');
   const [rfqSuccess, setRfqSuccess] = useState<string | null>(null);
 
-  const [pendingCompanies, setPendingCompanies] = useState<any[]>([
+  const [pendingCompanies, setPendingCompanies] = useState<Array<{
+    id: string;
+    name: string;
+    country: 'IR' | 'RU';
+    taxId: string;
+    email: string;
+    phone: string;
+    kybStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
+    isGoldenList: boolean;
+  }>>([
     {
       id: 'comp-102',
       name: 'بازرگانی پارس آریا',
@@ -250,7 +259,7 @@ export default function HomePage() {
     },
   ]);
 
-  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([
+  const [auditLogs, setAuditLogs] = useState<LogEntry[]>([
     {
       id: 'log-1',
       timestamp: new Date().toLocaleTimeString(),
@@ -272,7 +281,7 @@ export default function HomePage() {
     if (saved) {
       try {
         const u = JSON.parse(saved);
-        setUser(u);
+        setActiveUser(u);
       } catch (e) {
         console.error(e);
       }
@@ -280,7 +289,7 @@ export default function HomePage() {
   }, []);
 
   const handleLogout = () => {
-    setUser(null);
+    setActiveUser(null);
     localStorage.removeItem('rec_user_session');
     setActiveTab('catalog');
   };
@@ -290,7 +299,7 @@ export default function HomePage() {
     if (!loginEmail || !loginPassword) return;
 
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: UserAccount = {
+      const adminSession: SessionData = {
         id: 'admin-1',
         companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
@@ -300,7 +309,7 @@ export default function HomePage() {
         isGoldenList: true,
         role: 'ADMIN',
       };
-      setUser(adminSession);
+      setActiveUser(adminSession);
       localStorage.setItem('rec_user_session', JSON.stringify(adminSession));
       setActiveTab('admin');
       setAuthModal(null);
@@ -308,7 +317,7 @@ export default function HomePage() {
       return;
     }
 
-    const session: UserAccount = {
+    const session: SessionData = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -319,7 +328,7 @@ export default function HomePage() {
       role: 'COMPANY',
     };
 
-    setUser(session);
+    setActiveUser(session);
     localStorage.setItem('rec_user_session', JSON.stringify(session));
     setAuthModal(null);
     setLoginPassword('');
@@ -329,14 +338,14 @@ export default function HomePage() {
     e.preventDefault();
     if (!regName || !regEmail || !regTaxId || !regPassword) return;
 
-    const newCompany: any = {
+    const newCompany = {
       id: `comp-${Date.now()}`,
       name: regName,
       country: regCountry,
       taxId: regTaxId,
       email: regEmail,
       phone: regPhone,
-      kybStatus: 'PENDING',
+      kybStatus: 'PENDING' as const,
       isGoldenList: false,
     };
 
@@ -353,7 +362,7 @@ export default function HomePage() {
       ...prev,
     ]);
 
-    const session: UserAccount = {
+    const session: SessionData = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -364,7 +373,7 @@ export default function HomePage() {
       role: 'COMPANY',
     };
 
-    setUser(session);
+    setActiveUser(session);
     localStorage.setItem('rec_user_session', JSON.stringify(session));
     setAuthModal(null);
     setRegName('');
@@ -376,7 +385,7 @@ export default function HomePage() {
 
   const handleRfqSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!activeUser) return;
 
     const rfqId = `RFQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     setRfqSuccess(rfqId);
@@ -386,8 +395,8 @@ export default function HomePage() {
         id: `log-${Date.now()}`,
         timestamp: new Date().toLocaleTimeString(),
         action: 'RFQ_CREATED',
-        actorEmail: user.email,
-        details: `RFQ ${rfqId} submitted for ${selectedProduct} (${volumeMt} MT) by ${user.companyName}`,
+        actorEmail: activeUser.email,
+        details: `RFQ ${rfqId} submitted for ${selectedProduct} (${volumeMt} MT) by ${activeUser.companyName}`,
       },
       ...prev,
     ]);
@@ -403,7 +412,7 @@ export default function HomePage() {
         id: `log-${Date.now()}`,
         timestamp: new Date().toLocaleTimeString(),
         action: 'KYB_UPDATE',
-        actorEmail: user?.email || 'admin@rec-trade.com',
+        actorEmail: activeUser?.email || 'admin@rec-trade.com',
         details: `Company ID ${companyId} status changed to ${newStatus}.`,
       },
       ...prev,
@@ -412,7 +421,7 @@ export default function HomePage() {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-      {/* هدر سایت */}
+      {/* هدر */}
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -426,9 +435,9 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* تغییر زبان */}
+            {/* انتخاب زبان */}
             <div className="flex rounded-md bg-slate-800 p-1 border border-slate-700 text-xs">
-              {(['fa', 'ru', 'en'] as Language[]).map((l) => (
+              {(['fa', 'ru', 'en'] as LangCode[]).map((l) => (
                 <button
                   key={l}
                   onClick={() => setLang(l)}
@@ -441,13 +450,13 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* پروفایل کاربر و دکمه ورود */}
-            {user ? (
+            {/* پروفایل / ورود */}
+            {activeUser ? (
               <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
                 <div>
                   <div className="font-semibold text-white flex items-center gap-2">
-                    {user.companyName}
-                    {user.role === 'ADMIN' && (
+                    {activeUser.companyName}
+                    {activeUser.role === 'ADMIN' && (
                       <span className="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.5 rounded border border-rose-500/30">
                         {t.adminBadge}
                       </span>
@@ -456,13 +465,13 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span
                       className={`inline-block w-2 h-2 rounded-full ${
-                        user.kybStatus === 'VERIFIED' ? 'bg-emerald-400' : 'bg-amber-400'
+                        activeUser.kybStatus === 'VERIFIED' ? 'bg-emerald-400' : 'bg-amber-400'
                       }`}
                     />
                     <span className="text-[11px] text-slate-300">
-                      {user.kybStatus === 'VERIFIED'
+                      {activeUser.kybStatus === 'VERIFIED'
                         ? t.kybVerified
-                        : user.kybStatus === 'REJECTED'
+                        : activeUser.kybStatus === 'REJECTED'
                         ? t.kybRejected
                         : t.kybPending}
                     </span>
@@ -495,7 +504,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* تب‌های اصلی */}
+      {/* محتوا */}
       <main className="max-w-7xl mx-auto w-full px-6 py-8 flex-1">
         <div className="flex border-b border-slate-800 mb-8 gap-6 text-sm">
           <button
@@ -518,7 +527,7 @@ export default function HomePage() {
           >
             {t.tabRfq}
           </button>
-          {user?.role === 'ADMIN' && (
+          {activeUser?.role === 'ADMIN' && (
             <button
               onClick={() => setActiveTab('admin')}
               className={`pb-3 font-semibold transition border-b-2 ${
@@ -532,10 +541,32 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* کاتالوگ کالایی */}
+        {/* کاتالوگ */}
         {activeTab === 'catalog' && (
           <div>
-            {!user && (
+            {!activeUser && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex flex-wrap items-center justify-between gap-3">
+                <span>{t.catalogNotice}</span>
+                <button
+                  onClick={() => setAuthModal('login')}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs transition"
+                >
+                  {t.loginToOrder}
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080251</span>
+                    <span className="text-xs text-slate-400">{t.p1Origin}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{t.p1Name}</h3>
+                  <p className="text-xs text-slate-300">{t.p1Desc}</p>
+                </div>
+                <div className="mt-6 pt-4 border-t borderactiveUser && (
               <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex flex-wrap items-center justify-between gap-3">
                 <span>{t.catalogNotice}</span>
                 <button
@@ -564,40 +595,10 @@ export default function HomePage() {
                       setSelectedProduct('pistachio-akbari');
                       setActiveTab('rfq');
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-4 py-2 rounded-lg transition"
-                  >
-                    {t.rfqBtn}
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080410</span>
-                    <span className="text-xs text-slate-400">{t.p2Origin}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t.p2Name}</h3>
-                  <p className="text-xs text-slate-300">{t.p2Desc}</p>
-                </div>
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{t.minVolume}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedProduct('dates-mazafati');
-                      setActiveTab('rfq');
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-4 py-2 rounded-lg transition"
-                  >
-                    {t.rfqBtn}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+                    className</div>
         )}
 
-        {/* استعلام RFQ */}
+        {/* فرم استعلام RFQ */}
         {activeTab === 'rfq' && (
           <div className="max-w-2xl mx-auto border border-slate-800 bg-slate-950/60 p-8 rounded-2xl">
             <h2 className="text-lg font-bold text-white mb-2">{t.rfqTitle}</h2>
@@ -609,7 +610,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {!user ? (
+            {!activeUser ? (
               <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl">
                 <p className="text-sm text-slate-300 mb-4">{t.rfqLoginPrompt}</p>
                 <button
@@ -678,8 +679,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* پنل ادمین */}
-        {activeTab === 'admin' && user?.role === 'ADMIN' && (
+        {/* پنل مدیریت ادمین */}
+        {activeTab === 'admin' && activeUser?.role === 'ADMIN' && (
           <div className="space-y-8">
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
               <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
@@ -736,187 +737,4 @@ export default function HomePage() {
                               : t.kybPending}
                           </span>
                         </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
-                            >
-                              {t.verifyAction}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
-                              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
-                            >
-                              {t.rejectAction}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* لاگ زنده رویدادهای سیستم */}
-            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
-              <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
-              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-4 text-xs font-mono"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
-                      <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
-                        {log.action}
-                      </span>
-                      <span className="text-slate-300">{log.details}</span>
-                    </div>
-                    <span className="text-slate-500 text-[11px] shrink-0">{log.actorEmail}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* مودال لاگین و ثبت‌نام */}
-      {authModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-sm text-white">
-                {authModal === 'login' ? t.modalLoginTitle : t.modalRegTitle}
-              </h3>
-              <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
-                ✕
-              </button>
-            </div>
-
-            {authModal === 'login' ? (
-              <form onSubmit={handleLoginSubmit} className="space-y-4 mt-5 text-xs">
-                <div>
-                  <label className="block text-slate-300 mb-1.5">{t.emailLabel}</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="admin@rec-trade.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1.5">{t.passwordLabel}</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
-                >
-                  {t.modalLoginBtn}
-                </button>
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setAuthModal('register')}
-                    className="text-emerald-400 hover:underline text-xs"
-                  >
-                    {t.modalSwitchToReg}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleRegisterSubmit} className="space-y-3 mt-4 text-xs">
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.companyNameLabel}</label>
-                  <input
-                    type="text"
-                    required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-300 mb-1">{t.countryLabel}</label>
-                    <select
-                      value={regCountry}
-                      onChange={(e) => setRegCountry(e.target.value as 'IR' | 'RU')}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                    >
-                      <option value="IR">{t.iran}</option>
-                      <option value="RU">{t.russia}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-slate-300 mb-1">{t.taxIdLabel}</label>
-                    <input
-                      type="text"
-                      required
-                      value={regTaxId}
-                      onChange={(e) => setRegTaxId(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.emailLabel}</label>
-                  <input
-                    type="email"
-                    required
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.phoneLabel}</label>
-                  <input
-                    type="tel"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.passwordLabel}</label>
-                  <input
-                    type="password"
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
-                >
-                  {t.modalRegBtn}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* فوتر */}
-      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        REC Platform &copy; 2026 — Russia-Iran Cross-Border Settlement & Trade Gateway
-      </footer>
-    </div>
-  );
-}
+                        <td className="p-
