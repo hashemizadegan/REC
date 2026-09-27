@@ -1,18 +1,23 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
-COPY package*.json tsconfig*.json nest-cli.json ./
+
+COPY package*.json ./
 RUN npm install
-COPY src ./src
+
+COPY . .
 RUN npm run build
 
-# Stage 2: Production Runner
-FROM node:20-alpine AS runner
+FROM node:18-alpine AS runner
 WORKDIR /app
+
 ENV NODE_ENV=production
+ENV PORT=3000
+
 COPY package*.json ./
 RUN npm install --omit=dev
+
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
-CMD ["node", "dist/main"]
+
+CMD ["sh", "-c", "node dist/main.js"]
