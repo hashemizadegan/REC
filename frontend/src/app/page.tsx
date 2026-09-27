@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 type Language = 'fa' | 'ru' | 'en';
 type AuthMode = 'login' | 'register' | null;
 
-interface GAPGPTMASKTOKENix0xtrg217aX0X {
+interface UserAccount {
   id: string;
   companyName: string;
   email: string;
@@ -209,7 +209,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
   const [authModal, setAuthModal] = useState<AuthMode>(null);
 
-  const [user, setUser] = useState<GAPGPTMASKTOKENix0xtrg217aX1X | null>(null);
+  const [user, setUser] = useState<UserAccount | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -290,7 +290,7 @@ export default function HomePage() {
     if (!loginEmail || !loginPassword) return;
 
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: GAPGPTMASKTOKENix0xtrg217aX2X = {
+      const adminSession: UserAccount = {
         id: 'admin-1',
         companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
@@ -308,7 +308,7 @@ export default function HomePage() {
       return;
     }
 
-    const session: GAPGPTMASKTOKENix0xtrg217aX3X = {
+    const session: UserAccount = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -353,7 +353,7 @@ export default function HomePage() {
       ...prev,
     ]);
 
-    const session: GAPGPTMASKTOKENix0xtrg217aX4X = {
+    const session: UserAccount = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -426,7 +426,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* انتخاب زبان */}
+            {/* تغییر زبان */}
             <div className="flex rounded-md bg-slate-800 p-1 border border-slate-700 text-xs">
               {(['fa', 'ru', 'en'] as Language[]).map((l) => (
                 <button
@@ -441,7 +441,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* بخش ورود / پروفایل کاربری */}
+            {/* پروفایل کاربر و دکمه ورود */}
             {user ? (
               <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
                 <div>
@@ -495,7 +495,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ناوبری تب‌ها */}
+      {/* تب‌های اصلی */}
       <main className="max-w-7xl mx-auto w-full px-6 py-8 flex-1">
         <div className="flex border-b border-slate-800 mb-8 gap-6 text-sm">
           <button
@@ -532,7 +532,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ۱. تب کاتالوگ کالایی */}
+        {/* کاتالوگ کالایی */}
         {activeTab === 'catalog' && (
           <div>
             {!user && (
@@ -597,7 +597,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ۲. تب استعلام RFQ */}
+        {/* استعلام RFQ */}
         {activeTab === 'rfq' && (
           <div className="max-w-2xl mx-auto border border-slate-800 bg-slate-950/60 p-8 rounded-2xl">
             <h2 className="text-lg font-bold text-white mb-2">{t.rfqTitle}</h2>
@@ -678,7 +678,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ۳. تب پنل مدیریت (Admin) */}
+        {/* پنل ادمین */}
         {activeTab === 'admin' && user?.role === 'ADMIN' && (
           <div className="space-y-8">
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
@@ -784,7 +784,7 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* مودال ورود و ثبت‌نام */}
+      {/* مودال لاگین و ثبت‌نام */}
       {authModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
