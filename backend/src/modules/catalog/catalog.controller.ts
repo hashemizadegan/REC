@@ -5,7 +5,7 @@ import { CatalogService } from './catalog.service';
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
-  @Get('products')
+  @Get()
   getAllProducts() {
     return this.catalogService.findAll();
   }
