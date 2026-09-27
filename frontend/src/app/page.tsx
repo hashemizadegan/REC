@@ -463,7 +463,6 @@ export default function HomePage() {
                       {user.kybStatus === 'VERIFIED'
                         ? t.kybVerified
                         : user.kybStatus === 'REJECTED'
-                        ? t.kybRejected
                         : t.kybPending}
                     </span>
                   </div>
@@ -759,50 +758,39 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* لاگ زنده ادمین */}
-            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
-              <h2 className="text-base font-bold text-white mb-4rose-500/20 text-rose-400'
-                                : 'bg-amber-500/20 text-amber-300'
-                            }`}
-                          >
-                            {c.kybStatus === 'VERIFIED'
-                              ? t.kybVerified
-                              : c.kybStatus === 'REJECTED'
-                              ? t.kybRejected
-                              : t.kybPending}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
-                            >
-                              {t.verifyAction}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
-                              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
-                            >
-                              {t.rejectAction}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* لاگ زنده ادمین */}
+            {/* لاگ رویدادها */}
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
               <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
-              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-3 rounded-lg bg-slate00 hover:text-white text-sm">
+ className="flex items-center gap-3">
+                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
+                      <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
+0 flex items-center justify-between gap-4 text-xs font-mono"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
+                      <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                        {log.action}
+                      </span>
+                      <span className="text-slate-300">{log.details}</span>
+                    </div>
+                    <span className="text-slate-500 text-[11px] shrink-0">{log.actorEmail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* مودال ورود و ثبت‌نام */}
+      {authModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-sm text-white">
+                {authModal === 'login' ? t.modalLoginTitle : t.modalRegTitle}
+              </h3>
+              <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
                 ✕
               </button>
             </div>
