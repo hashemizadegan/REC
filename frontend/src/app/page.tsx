@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 type Language = 'fa' | 'ru' | 'en';
 type AuthMode = 'login' | 'register' | null;
 
-interface UserSession {
+interface GAPGPTMASKTOKEN282awb5v2gvX0X {
   id: string;
   companyName: string;
   email: string;
@@ -14,7 +14,6 @@ interface UserSession {
   kybStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
   isGoldenList: boolean;
   role: 'COMPANY' | 'ADMIN';
-  token?: string;
 }
 
 interface AuditLogItem {
@@ -25,19 +24,196 @@ interface AuditLogItem {
   details: string;
 }
 
+const TRANSLATIONS = {
+  fa: {
+    siteTitle: 'سامانه بازرگانی ایران و روسیه (REC)',
+    siteSubtitle: 'مرکز تسویه ارزی و ثبت سفارشات کالایی B2B',
+    tabCatalog: 'کاتالوگ کالاهای صادراتی',
+    tabRfq: 'ثبت استعلام رسمی (RFQ)',
+    tabAdmin: '🛡️ پنل مدیریت و لاگ وقایع (Admin)',
+    adminBadge: 'مدیر سیستم',
+    kybVerified: 'احراز هویت شده (KYB تایید)',
+    kybPending: 'در انتظار بررسی مدارک',
+    kybRejected: 'رد شده',
+    logout: 'خروج',
+    login: 'ورود',
+    registerKyb: 'ثبت‌نام شرکت (KYB)',
+    catalogNotice: 'برای مشاهده قیمت قطعی و ارسال استعلام رسمی RFQ باید وارد حساب کاربری خود شوید.',
+    loginToOrder: 'ورود جهت سفارش',
+    rfqBtn: 'درخواست پیش‌فاکتور (RFQ)',
+    minVolume: 'حداقل حجم: ۲۰ تن متری',
+    rfqTitle: 'فرم درخواست استعلام قیمت و قرارداد (RFQ)',
+    rfqSubtitle: 'سفارشات مستقیماً در کارتابل مدیریت و کلیرینگ ارزی ثبت می‌شوند.',
+    rfqSuccessPrefix: 'درخواست شما با موفقیت ثبت گردید. شماره استعلام:',
+    rfqLoginPrompt: 'برای ارسال استعلام رسمی باید وارد سامانه شوید.',
+    loginToAccount: 'ورود به حساب',
+    productLabel: 'کالای انتخابی',
+    volumeLabel: 'حجم سفارش (تن)',
+    incotermsLabel: 'اینکوترمز',
+    targetPriceLabel: 'قیمت پیشنهادی (USD/MT)',
+    submitRfq: 'ثبت رسمی استعلام RFQ',
+    adminQueueTitle: '📋 کارتابل تأیید هویت شرکت‌ها (KYB Review)',
+    companiesCount: 'تعداد شرکت‌ها:',
+    thCompany: 'نام شرکت',
+    thCountry: 'کشور',
+    thTaxId: 'شناسه ملی / ИНН',
+    thContact: 'ایمیل و تلفن',
+    thStatus: 'وضعیت فعلی',
+    thAction: 'عملیات ادمین',
+    verifyAction: 'تأیید هویت',
+    rejectAction: 'رد مدارک',
+    adminLogsTitle: '📜 گزارش زنده رویدادهای سیستم (Audit & Activity Logs)',
+    modalLoginTitle: 'ورود به حساب کاربری / پنل ادمین',
+    modalRegTitle: 'ثبت‌نام شرکت و ارسال مدارک (KYB)',
+    emailLabel: 'ایمیل رسمی',
+    passwordLabel: 'رمز عبور',
+    companyNameLabel: 'نام رسمی شرکت',
+    countryLabel: 'کشور',
+    taxIdLabel: 'شناسه ملی / ИНН',
+    phoneLabel: 'تلفن تماس',
+    modalLoginBtn: 'ورود',
+    modalRegBtn: 'ارسال مدارک برای بررسی KYB',
+    modalSwitchToReg: 'ثبت‌نام شرکت جدید (KYB)',
+    iran: 'ایران (IR)',
+    russia: 'روسیه (RU)',
+    p1Name: 'پسته اکبری اعلا (Super Long)',
+    p1Desc: 'مطابق GOST روسیه و استانداردهای EAEU - سورتینگ تمام لیزری',
+    p1Origin: 'ایران (رفسنجان)',
+    p2Name: 'خرمای مضافتی ممتاز',
+    p2Desc: 'دارای گواهی استاندارد بهداشت فیتوسانیتری و قرنطینه گمرکی',
+    p2Origin: 'ایران (بم)',
+  },
+  ru: {
+    siteTitle: 'Торговая платформа Россия–Иран (REC)',
+    siteSubtitle: 'B2B клиринг, взаиморасчеты и экспортно-импортные поставки',
+    tabCatalog: 'Каталог экспортных товаров',
+    tabRfq: 'Подать официальный запрос (RFQ)',
+    tabAdmin: '🛡️ Панель администратора и аудит (Admin)',
+    adminBadge: 'Администратор',
+    kybVerified: 'Верифицирован (KYB одобрен)',
+    kybPending: 'На проверке документов',
+    kybRejected: 'Отклонен',
+    logout: 'Выход',
+    login: 'Вход',
+    registerKyb: 'Регистрация компании (KYB)',
+    catalogNotice: 'Для просмотра фиксированных цен и подачи котировок RFQ необходимо войти в систему.',
+    loginToOrder: 'Войти для заказа',
+    rfqBtn: 'Запросить счет (RFQ)',
+    minVolume: 'Мин. партия: 20 тонн',
+    rfqTitle: 'Форма запроса коммерческого предложения (RFQ)',
+    rfqSubtitle: 'Заказы направляются напрямую в клиринговый шлюз и торговый реестр.',
+    rfqSuccessPrefix: 'Ваш запрос успешно зарегистрирован. Номер RFQ:',
+    rfqLoginPrompt: 'Для подачи официального запроса необходимо авторизоваться.',
+    loginToAccount: 'Войти в аккаунт',
+    productLabel: 'Выбор товара',
+    volumeLabel: 'Объем партии (тонн)',
+    incotermsLabel: 'Условия Инкотермс',
+    targetPriceLabel: 'Целевая цена (USD/MT)',
+    submitRfq: 'Отправить официальный запрос RFQ',
+    adminQueueTitle: '📋 Реестр верификации компаний (KYB Review)',
+    companiesCount: 'Всего компаний:',
+    thCompany: 'Компания',
+    thCountry: 'Страна',
+    thTaxId: 'ИНН / Tax ID',
+    thContact: 'Контакты',
+    thStatus: 'Статус',
+    thAction: 'Действие',
+    verifyAction: 'Подтвердить',
+    rejectAction: 'Отклонить',
+    adminLogsTitle: '📜 Журнал аудита операций в реальном времени (Audit Logs)',
+    modalLoginTitle: 'Вход в аккаунт / Панель администратора',
+    modalRegTitle: 'Регистрация компании и загрузка документов (KYB)',
+    emailLabel: 'Корпоративный Email',
+    passwordLabel: 'Пароль',
+    companyNameLabel: 'Официальное наименование компании',
+    countryLabel: 'Страна юрисдикции',
+    taxIdLabel: 'ИНН / ОГРН',
+    phoneLabel: 'Номер телефона',
+    modalLoginBtn: 'Войти в систему',
+    modalRegBtn: 'Подать заявку на KYB',
+    modalSwitchToReg: 'Регистрация нового участника (KYB)',
+    iran: 'Иран (IR)',
+    russia: 'Россия (RU)',
+    p1Name: 'Фисташки сорта Акбари (Super Long)',
+    p1Desc: 'Соответствие ГОСТ и техрегламентам ЕАЭС, лазерная калибровка',
+    p1Origin: 'Иран (Рафсанджан)',
+    p2Name: 'Финики Мазафати высший сорт',
+    p2Desc: 'Фитосанитарный сертификат, таможенная очистка без задержек',
+    p2Origin: 'Иран (Бам)',
+  },
+  en: {
+    siteTitle: 'Iran-Russia Trade Gateway (REC)',
+    siteSubtitle: 'B2B Currency Clearing & Commodity Trading Platform',
+    tabCatalog: 'Export Goods Catalog',
+    tabRfq: 'Request for Quotation (RFQ)',
+    tabAdmin: '🛡️ Admin Audit & Control Panel',
+    adminBadge: 'System Admin',
+    kybVerified: 'Verified (KYB Approved)',
+    kybPending: 'KYB Under Review',
+    kybRejected: 'Rejected',
+    logout: 'Sign Out',
+    login: 'Sign In',
+    registerKyb: 'Company Registration (KYB)',
+    catalogNotice: 'Please sign in to view locked pricing and submit official RFQs.',
+    loginToOrder: 'Sign In to Trade',
+    rfqBtn: 'Request Quote (RFQ)',
+    minVolume: 'Min. Order: 20 MT',
+    rfqTitle: 'Official RFQ Submission Form',
+    rfqSubtitle: 'Orders are directly routed to the central FX clearing hub.',
+    rfqSuccessPrefix: 'Your RFQ has been submitted successfully. RFQ ID:',
+    rfqLoginPrompt: 'You must sign in to submit official trade requests.',
+    loginToAccount: 'Sign In',
+    productLabel: 'Select Product',
+    volumeLabel: 'Volume (Metric Tons)',
+    incotermsLabel: 'Incoterms 2020',
+    targetPriceLabel: 'Target Price (USD/MT)',
+    submitRfq: 'Submit Official RFQ',
+    adminQueueTitle: '📋 Company Verification Queue (KYB Review)',
+    companiesCount: 'Total Companies:',
+    thCompany: 'Company Name',
+    thCountry: 'Country',
+    thTaxId: 'Tax ID / INN',
+    thContact: 'Contact Info',
+    thStatus: 'KYB Status',
+    thAction: 'Admin Action',
+    verifyAction: 'Verify Company',
+    rejectAction: 'Reject',
+    adminLogsTitle: '📜 Live System Audit & Security Logs',
+    modalLoginTitle: 'Sign In / Admin Access',
+    modalRegTitle: 'Company KYB Onboarding Form',
+    emailLabel: 'Corporate Email',
+    passwordLabel: 'Password',
+    companyNameLabel: 'Registered Company Name',
+    countryLabel: 'Jurisdiction',
+    taxIdLabel: 'Tax ID / INN / Registration No.',
+    phoneLabel: 'Phone Number',
+    modalLoginBtn: 'Sign In',
+    modalRegBtn: 'Submit KYB Documents',
+    modalSwitchToReg: 'Register New Company (KYB)',
+    iran: 'Iran (IR)',
+    russia: 'Russia (RU)',
+    p1Name: 'Premium Akbari Pistachios (Super Long)',
+    p1Desc: 'Compliant with GOST & EAEU technical regulations, laser sorted',
+    p1Origin: 'Iran (Rafsanjan)',
+    p2Name: 'Grade-A Mazafati Fresh Dates',
+    p2Desc: 'Phytosanitary certified, optimized cold chain shipping',
+    p2Origin: 'Iran (Bam)',
+  },
+};
+
 export default function HomePage() {
   const [lang, setLang] = useState<Language>('fa');
+  const t = TRANSLATIONS[lang];
+  const isRtl = lang === 'fa';
+
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
   const [authModal, setAuthModal] = useState<AuthMode>(null);
 
-  // وضعیت کاربر لاگین‌شده
-  const [user, setUser] = useState<UserSession | null>(null);
+  const [user, setUser] = useState<GAPGPTMASKTOKEN282awb5v2gvX1X | null>(null);
 
-  // فرم لاگین
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // فرم ثبت‌نام شرکت (KYB)
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -45,14 +221,12 @@ export default function HomePage() {
   const [regTaxId, setRegTaxId] = useState('');
   const [regPhone, setRegPhone] = useState('');
 
-  // فرم استعلام RFQ
   const [selectedProduct, setSelectedProduct] = useState('pistachio-akbari');
   const [volumeMt, setVolumeMt] = useState(25);
   const [incoterms, setIncoterms] = useState('FCA');
   const [targetPrice, setTargetPrice] = useState('9200');
   const [rfqSuccess, setRfqSuccess] = useState<string | null>(null);
 
-  // داده‌های پنل ادمین
   const [pendingCompanies, setPendingCompanies] = useState<any[]>([
     {
       id: 'comp-102',
@@ -79,17 +253,17 @@ export default function HomePage() {
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([
     {
       id: 'log-1',
-      timestamp: new Date().toLocaleTimeString('fa-IR'),
+      timestamp: new Date().toLocaleTimeString(),
       action: 'LOGIN',
       actorEmail: 'admin@rec-trade.com',
-      details: 'مدیر سامانه وارد پنل نظارتی گردید.',
+      details: 'Administrator logged in to oversight dashboard.',
     },
     {
       id: 'log-2',
-      timestamp: new Date(Date.now() - 3600000).toLocaleTimeString('fa-IR'),
+      timestamp: new Date(Date.now() - 3600000).toLocaleTimeString(),
       action: 'REGISTER',
       actorEmail: 'export@volgatrade.ru',
-      details: 'شرکت روسی ООО Волга Трейд مدارک خود را برای KYB ارسال کرد.',
+      details: 'ООО Волга Трейд uploaded KYB documentation.',
     },
   ]);
 
@@ -115,11 +289,10 @@ export default function HomePage() {
     e.preventDefault();
     if (!loginEmail || !loginPassword) return;
 
-    // لاگین مدیر سیستم
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: UserSession = {
+      const adminSession: GAPGPTMASKTOKEN282awb5v2gvX2X = {
         id: 'admin-1',
-        companyName: 'مدیریت سامانه بازرگانی REC',
+        companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
         country: 'IR',
         taxId: '10100000000',
@@ -135,8 +308,7 @@ export default function HomePage() {
       return;
     }
 
-    // ورود شرکت‌های عادی
-    const session: UserSession = {
+    const session: GAPGPTMASKTOKEN282awb5v2gvX3X = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -168,22 +340,20 @@ export default function HomePage() {
       isGoldenList: false,
     };
 
-    // افزودن به لیست شرکت‌ها برای بررسی توسط ادمین
     setPendingCompanies((prev) => [newCompany, ...prev]);
 
-    // ثبت در لاگ زنده سیستم
     setAuditLogs((prev) => [
       {
         id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString('fa-IR'),
+        timestamp: new Date().toLocaleTimeString(),
         action: 'REGISTER',
         actorEmail: regEmail,
-        details: `شرکت جدید "${regName}" (${regCountry === 'IR' ? 'ایران' : 'روسیه'}) فرم KYB را ثبت کرد.`,
+        details: `New company "${regName}" (${regCountry}) submitted KYB profile.`,
       },
       ...prev,
     ]);
 
-    const session: UserSession = {
+    const session: GAPGPTMASKTOKEN282awb5v2gvX4X = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -214,16 +384,15 @@ export default function HomePage() {
     setAuditLogs((prev) => [
       {
         id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString('fa-IR'),
+        timestamp: new Date().toLocaleTimeString(),
         action: 'RFQ_CREATED',
         actorEmail: user.email,
-        details: `ثبت استعلام جدید ${rfqId} برای ${selectedProduct} به حجم ${volumeMt} تن توسط ${user.companyName}`,
+        details: `RFQ ${rfqId} submitted for ${selectedProduct} (${volumeMt} MT) by ${user.companyName}`,
       },
       ...prev,
     ]);
   };
 
-  // تأیید یا رد مدرک توسط مدیر
   const handleUpdateKyb = (companyId: string, newStatus: 'VERIFIED' | 'REJECTED') => {
     setPendingCompanies((prev) =>
       prev.map((c) => (c.id === companyId ? { ...c, kybStatus: newStatus } : c))
@@ -232,16 +401,14 @@ export default function HomePage() {
     setAuditLogs((prev) => [
       {
         id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString('fa-IR'),
+        timestamp: new Date().toLocaleTimeString(),
         action: 'KYB_UPDATE',
         actorEmail: user?.email || 'admin@rec-trade.com',
-        details: `وضعیت شرکت با شناسه ${companyId} توسط مدیر به "${newStatus === 'VERIFIED' ? 'تأیید شده' : 'رد شده'}" تغییر یافت.`,
+        details: `Company ID ${companyId} status changed to ${newStatus}.`,
       },
       ...prev,
     ]);
   };
-
-  const isRtl = lang === 'fa';
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
@@ -253,8 +420,8 @@ export default function HomePage() {
               REC
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-white">سامانه بازرگانی ایران و روسیه (REC)</h1>
-              <p className="text-xs text-slate-400">مرکز تسویه ارزی و ثبت سفارشات کالایی B2B</p>
+              <h1 className="text-lg font-bold tracking-tight text-white">{t.siteTitle}</h1>
+              <p className="text-xs text-slate-400">{t.siteSubtitle}</p>
             </div>
           </div>
 
@@ -274,7 +441,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* بخش ورود / پروفایل شرکت یا ادمین */}
+            {/* بخش لاگین / وضعیت کاربری */}
             {user ? (
               <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
                 <div>
@@ -282,7 +449,7 @@ export default function HomePage() {
                     {user.companyName}
                     {user.role === 'ADMIN' && (
                       <span className="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.5 rounded border border-rose-500/30">
-                        مدیر سیستم
+                        {t.adminBadge}
                       </span>
                     )}
                   </div>
@@ -293,7 +460,11 @@ export default function HomePage() {
                       }`}
                     />
                     <span className="text-[11px] text-slate-300">
-                      {user.kybStatus === 'VERIFIED' ? 'احراز هویت شده (KYB تایید)' : 'در انتظار بررسی مدارک'}
+                      {user.kybStatus === 'VERIFIED'
+                        ? t.kybVerified
+                        : user.kybStatus === 'REJECTED'
+                        ? t.kybRejected
+                        : t.kybPending}
                     </span>
                   </div>
                 </div>
@@ -301,7 +472,7 @@ export default function HomePage() {
                   onClick={handleLogout}
                   className="text-rose-400 hover:text-rose-300 text-xs border border-rose-900/50 hover:bg-rose-950 px-2 py-1 rounded transition"
                 >
-                  خروج
+                  {t.logout}
                 </button>
               </div>
             ) : (
@@ -310,13 +481,13 @@ export default function HomePage() {
                   onClick={() => setAuthModal('login')}
                   className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-medium px-3.5 py-2 rounded-lg transition"
                 >
-                  ورود
+                  {t.login}
                 </button>
                 <button
                   onClick={() => setAuthModal('register')}
                   className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3.5 py-2 rounded-lg transition"
                 >
-                  ثبت‌نام شرکت (KYB)
+                  {t.registerKyb}
                 </button>
               </div>
             )}
@@ -324,7 +495,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* تب‌های اصلی صفحه */}
+      {/* تب‌های اصلی */}
       <main className="max-w-7xl mx-auto w-full px-6 py-8 flex-1">
         <div className="flex border-b border-slate-800 mb-8 gap-6 text-sm">
           <button
@@ -335,7 +506,7 @@ export default function HomePage() {
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            کاتالوگ کالاهای صادراتی
+            {t.tabCatalog}
           </button>
           <button
             onClick={() => setActiveTab('rfq')}
@@ -345,7 +516,7 @@ export default function HomePage() {
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            ثبت استعلام رسمی (RFQ)
+            {t.tabRfq}
           </button>
           {user?.role === 'ADMIN' && (
             <button
@@ -356,22 +527,22 @@ export default function HomePage() {
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              🛡️ پنل مدیریت و لاگ وقایع (Admin)
+              {t.tabAdmin}
             </button>
           )}
         </div>
 
-        {/* نمای کاتالوگ */}
+        {/* کاتالوگ */}
         {activeTab === 'catalog' && (
           <div>
             {!user && (
               <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex flex-wrap items-center justify-between gap-3">
-                <span>برای مشاهده قیمت قطعی و ارسال درخواست رسمی RFQ باید وارد حساب کاربری خود شوید.</span>
+                <span>{t.catalogNotice}</span>
                 <button
                   onClick={() => setAuthModal('login')}
                   className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs transition"
                 >
-                  ورود جهت مشاهده و سفارش
+                  {t.loginToOrder}
                 </button>
               </div>
             )}
@@ -381,13 +552,13 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080251</span>
-                    <span className="text-xs text-slate-400">ایران (رفسنجان)</span>
+                    <span className="text-xs text-slate-400">{t.p1Origin}</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">پسته اکبری اعلا (Super Long)</h3>
-                  <p className="text-xs text-slate-300">مطابق GOST روسیه و EAEU - سورتینگ تمام‌لیزری</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{t.p1Name}</h3>
+                  <p className="text-xs text-slate-300">{t.p1Desc}</p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">حداقل حجم: ۲۰ تن متری</span>
+                  <span className="text-xs text-slate-400">{t.minVolume}</span>
                   <button
                     onClick={() => {
                       setSelectedProduct('pistachio-akbari');
@@ -395,7 +566,7 @@ export default function HomePage() {
                     }}
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-4 py-2 rounded-lg transition"
                   >
-                    درخواست پیش‌فاکتور (RFQ)
+                    {t.rfqBtn}
                   </button>
                 </div>
               </div>
@@ -404,13 +575,13 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080410</span>
-                    <span className="text-xs text-slate-400">ایران (بم)</span>
+                    <span className="text-xs text-slate-400">{t.p2Origin}</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">خرمای مضافتی درجه یک</h3>
-                  <p className="text-xs text-slate-300">دارای گواهی استاندارد بهداشت فیتوسانیتری و قرنطینه</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{t.p2Name}</h3>
+                  <p className="text-xs text-slate-300">{t.p2Desc}</p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">حداقل حجم: ۲۰ تن متری</span>
+                  <span className="text-xs text-slate-400">{t.minVolume}</span>
                   <button
                     onClick={() => {
                       setSelectedProduct('dates-mazafati');
@@ -418,7 +589,7 @@ export default function HomePage() {
                     }}
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-4 py-2 rounded-lg transition"
                   >
-                    درخواست پیش‌فاکتور (RFQ)
+                    {t.rfqBtn}
                   </button>
                 </div>
               </div>
@@ -426,47 +597,45 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* نمای RFQ */}
+        {/* استعلام RFQ */}
         {activeTab === 'rfq' && (
           <div className="max-w-2xl mx-auto border border-slate-800 bg-slate-950/60 p-8 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-2">فرم درخواست استعلام قیمت و قرارداد (RFQ)</h2>
-            <p className="text-xs text-slate-400 mb-6">
-              سفارشات مستقیماً در کارتابل مدیریت و کلیرینگ ارزی ثبت می‌شوند.
-            </p>
+            <h2 className="text-lg font-bold text-white mb-2">{t.rfqTitle}</h2>
+            <p className="text-xs text-slate-400 mb-6">{t.rfqSubtitle}</p>
 
             {rfqSuccess && (
               <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-sm">
-                درخواست شما با موفقیت ثبت گردید. شماره استعلام: <strong className="font-mono text-white">{rfqSuccess}</strong>
+                {t.rfqSuccessPrefix} <strong className="font-mono text-white">{rfqSuccess}</strong>
               </div>
             )}
 
             {!user ? (
               <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-sm text-slate-300 mb-4">برای ارسال استعلام رسمی باید وارد سامانه شوید.</p>
+                <p className="text-sm text-slate-300 mb-4">{t.rfqLoginPrompt}</p>
                 <button
                   onClick={() => setAuthModal('login')}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition"
                 >
-                  ورود به حساب
+                  {t.loginToAccount}
                 </button>
               </div>
             ) : (
               <form onSubmit={handleRfqSubmit} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-slate-300 mb-1.5 font-medium">کالای انتخابی</label>
+                  <label className="block text-slate-300 mb-1.5 font-medium">{t.productLabel}</label>
                   <select
                     value={selectedProduct}
                     onChange={(e) => setSelectedProduct(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
                   >
-                    <option value="pistachio-akbari">پسته اکبری اعلا (HS 080251)</option>
-                    <option value="dates-mazafati">خرمای مضافتی ممتاز (HS 080410)</option>
+                    <option value="pistachio-akbari">{t.p1Name} (HS 080251)</option>
+                    <option value="dates-mazafati">{t.p2Name} (HS 080410)</option>
                   </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-300 mb-1.5 font-medium">حجم سفارش (تن)</label>
+                    <label className="block text-slate-300 mb-1.5 font-medium">{t.volumeLabel}</label>
                     <input
                       type="number"
                       value={volumeMt}
@@ -475,21 +644,21 @@ export default function HomePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 mb-1.5 font-medium">اینکوترمز</label>
+                    <label className="block text-slate-300 mb-1.5 font-medium">{t.incotermsLabel}</label>
                     <select
                       value={incoterms}
                       onChange={(e) => setIncoterms(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
                     >
-                      <option value="FCA">FCA (انزلی / آستارا)</option>
-                      <option value="CPT">CPT (آستراخان روسیه)</option>
-                      <option value="FOB">FOB (بندر امیرآباد)</option>
+                      <option value="FCA">FCA (Anzali / Astara)</option>
+                      <option value="CPT">CPT (Astrakhan / Moscow)</option>
+                      <option value="FOB">FOB (Amirabad Port)</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 mb-1.5 font-medium">قیمت پیشنهادی (USD/MT)</label>
+                  <label className="block text-slate-300 mb-1.5 font-medium">{t.targetPriceLabel}</label>
                   <input
                     type="text"
                     value={targetPrice}
@@ -502,33 +671,34 @@ export default function HomePage() {
                   type="submit"
                   className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition"
                 >
-                  ثبت رسمی استعلام RFQ
+                  {t.submitRfq}
                 </button>
               </form>
             )}
           </div>
         )}
 
-        {/* پنل نظارت و ادمین (Admin View) */}
+        {/* پنل نظارت و ادمین */}
         {activeTab === 'admin' && user?.role === 'ADMIN' && (
           <div className="space-y-8">
-            {/* جدول بررسی و احراز هویت شرکت‌ها (KYB Verification Queue) */}
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
               <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
-                <span>📋 کارتابل تأیید هویت شرکت‌ها (KYB Review)</span>
-                <span className="text-xs font-normal text-slate-400">تعداد شرکت‌ها: {pendingCompanies.length}</span>
+                <span>{t.adminQueueTitle}</span>
+                <span className="text-xs font-normal text-slate-400">
+                  {t.companiesCount} {pendingCompanies.length}
+                </span>
               </h2>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
+                <table className={`w-full text-xs ${isRtl ? 'text-right' : 'text-left'}`}>
                   <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
                     <tr>
-                      <th className="p-3">نام شرکت</th>
-                      <th className="p-3">کشور</th>
-                      <th className="p-3">شناسه ملی / ИНН</th>
-                      <th className="p-3">ایمیل و تلفن</th>
-                      <th className="p-3">وضعیت فعلی</th>
-                      <th className="p-3 text-center">عملیات ادمین</th>
+                      <th className="p-3">{t.thCompany}</th>
+                      <th className="p-3">{t.thCountry}</th>
+                      <th className="p-3">{t.thTaxId}</th>
+                      <th className="p-3">{t.thContact}</th>
+                      <th className="p-3">{t.thStatus}</th>
+                      <th className="p-3 text-center">{t.thAction}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -541,7 +711,7 @@ export default function HomePage() {
                               c.country === 'IR' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'
                             }`}
                           >
-                            {c.country === 'IR' ? 'ایران (IR)' : 'روسیه (RU)'}
+                            {c.country === 'IR' ? t.iran : t.russia}
                           </span>
                         </td>
                         <td className="p-3 font-mono">{c.taxId}</td>
@@ -560,10 +730,10 @@ export default function HomePage() {
                             }`}
                           >
                             {c.kybStatus === 'VERIFIED'
-                              ? 'تأیید شده'
+                              ? t.kybVerified
                               : c.kybStatus === 'REJECTED'
-                              ? 'رد شده'
-                              : 'در انتظار مدارک'}
+                              ? t.kybRejected
+                              : t.kybPending}
                           </span>
                         </td>
                         <td className="p-3 text-center">
@@ -572,13 +742,13 @@ export default function HomePage() {
                               onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
                               className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
                             >
-                              تأیید هویت
+                              {t.verifyAction}
                             </button>
                             <button
                               onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
                               className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
                             >
-                              رد
+                              {t.rejectAction}
                             </button>
                           </div>
                         </td>
@@ -589,11 +759,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* لاگ زنده تمام اتفاقات سایت (Audit Log) */}
+            {/* لاگ زنده ادمین */}
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
-              <h2 className="text-base font-bold text-white mb-4">
-                📜 گزارش زنده رویدادهای سیستم (Audit & Activity Logs)
-              </h2>
+              <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
               <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                 {auditLogs.map((log) => (
                   <div
@@ -616,13 +784,13 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* مدال ورود و ثبت‌نام */}
+      {/* مدال لاگین و ثبت‌نام */}
       {authModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <h3 className="font-bold text-white text-base">
-                {authModal === 'login' ? 'ورود به حساب کاربری / پنل ادمین' : 'ثبت‌نام شرکت و ارسال مدارک (KYB)'}
+                {authModal === 'login' ? t.modalLoginTitle : t.modalRegTitle}
               </h3>
               <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
                 ✕
@@ -632,18 +800,18 @@ export default function HomePage() {
             {authModal === 'login' ? (
               <form onSubmit={handleLoginSubmit} className="space-y-4 mt-5 text-xs">
                 <div>
-                  <label className="block text-slate-300 mb-1.5">ایمیل رسمی</label>
+                  <label className="block text-slate-300 mb-1.5">{t.emailLabel}</label>
                   <input
                     type="email"
                     required
-                    placeholder="admin@rec-trade.com یا ایمیل شرکتی"
+                    placeholder="admin@rec-trade.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1.5">رمز عبور</label>
+                  <label className="block text-slate-300 mb-1.5">{t.passwordLabel}</label>
                   <input
                     type="password"
                     required
@@ -657,7 +825,7 @@ export default function HomePage() {
                   type="submit"
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
                 >
-                  ورود
+                  {t.modalLoginBtn}
                 </button>
                 <div className="text-center pt-2">
                   <button
@@ -665,18 +833,17 @@ export default function HomePage() {
                     onClick={() => setAuthModal('register')}
                     className="text-emerald-400 hover:underline text-xs"
                   >
-                    ثبت‌نام شرکت جدید (KYB)
+                    {t.modalSwitchToReg}
                   </button>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleRegisterSubmit} className="space-y-3 mt-4 text-xs">
                 <div>
-                  <label className="block text-slate-300 mb-1">نام رسمی شرکت</label>
+                  <label className="block text-slate-300 mb-1">{t.companyNameLabel}</label>
                   <input
                     type="text"
                     required
-                    placeholder="نام ثبتی در روزنامه رسمی یا ЕГРЮЛ"
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
@@ -684,18 +851,18 @@ export default function HomePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 mb-1">کشور</label>
+                    <label className="block text-slate-300 mb-1">{t.countryLabel}</label>
                     <select
                       value={regCountry}
                       onChange={(e) => setRegCountry(e.target.value as 'IR' | 'RU')}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
                     >
-                      <option value="IR">ایران (IR)</option>
-                      <option value="RU">روسیه (RU)</option>
+                      <option value="IR">{t.iran}</option>
+                      <option value="RU">{t.russia}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-slate-300 mb-1">شناسه ملی / ИНН</label>
+                    <label className="block text-slate-300 mb-1">{t.taxIdLabel}</label>
                     <input
                       type="text"
                       required
@@ -706,7 +873,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1">ایمیل شرکتی</label>
+                  <label className="block text-slate-300 mb-1">{t.emailLabel}</label>
                   <input
                     type="email"
                     required
@@ -716,7 +883,7 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1">تلفن تماس</label>
+                  <label className="block text-slate-300 mb-1">{t.phoneLabel}</label>
                   <input
                     type="tel"
                     value={regPhone}
@@ -725,7 +892,7 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1">رمز عبور</label>
+                  <label className="block text-slate-300 mb-1">{t.passwordLabel}</label>
                   <input
                     type="password"
                     required
@@ -738,7 +905,7 @@ export default function HomePage() {
                   type="submit"
                   className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
                 >
-                  ارسال مدارک برای بررسی KYB
+                  {t.modalRegBtn}
                 </button>
               </form>
             )}
@@ -746,7 +913,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* فوتر */}
+      {/* Footer */}
       <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
         REC Platform &copy; 2026 — Russia-Iran Cross-Border Settlement & Trade Gateway
       </footer>
