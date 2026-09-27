@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 type Language = 'fa' | 'ru' | 'en';
 type AuthMode = 'login' | 'register' | null;
 
-interface GAPGPTMASKTOKEN282awb5v2gvX0X {
+interface UserProfile {
   id: string;
   companyName: string;
   email: string;
@@ -209,7 +209,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
   const [authModal, setAuthModal] = useState<AuthMode>(null);
 
-  const [user, setUser] = useState<GAPGPTMASKTOKEN282awb5v2gvX1X | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -290,7 +290,7 @@ export default function HomePage() {
     if (!loginEmail || !loginPassword) return;
 
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: GAPGPTMASKTOKEN282awb5v2gvX2X = {
+      const adminSession: UserProfile = {
         id: 'admin-1',
         companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
@@ -308,7 +308,7 @@ export default function HomePage() {
       return;
     }
 
-    const session: GAPGPTMASKTOKEN282awb5v2gvX3X = {
+    const session: UserProfile = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -353,7 +353,7 @@ export default function HomePage() {
       ...prev,
     ]);
 
-    const session: GAPGPTMASKTOKEN282awb5v2gvX4X = {
+    const session: UserProfile = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -761,38 +761,48 @@ export default function HomePage() {
 
             {/* لاگ زنده ادمین */}
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
+              <h2 className="text-base font-bold text-white mb-4rose-500/20 text-rose-400'
+                                : 'bg-amber-500/20 text-amber-300'
+                            }`}
+                          >
+                            {c.kybStatus === 'VERIFIED'
+                              ? t.kybVerified
+                              : c.kybStatus === 'REJECTED'
+                              ? t.kybRejected
+                              : t.kybPending}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
+                            >
+                              {t.verifyAction}
+                            </button>
+                            <button
+                              onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
+                              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
+                            >
+                              {t.rejectAction}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* لاگ زنده ادمین */}
+            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
               <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
               <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                 {auditLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-3 rounded-lg bg-slate-900 border border-slate-800/80 flex items-start justify-between gap-4 text-xs"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-emerald-400 font-semibold">{log.action}</span>
-                        <span className="text-slate-500 text-[11px]">{log.actorEmail}</span>
-                      </div>
-                      <p className="text-slate-200">{log.details}</p>
-                    </div>
-                    <span className="text-[11px] text-slate-500 font-mono whitespace-nowrap">{log.timestamp}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* مدال لاگین و ثبت‌نام */}
-      {authModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">
-                {authModal === 'login' ? t.modalLoginTitle : t.modalRegTitle}
-              </h3>
-              <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
+                    className="p-3 rounded-lg bg-slate00 hover:text-white text-sm">
                 ✕
               </button>
             </div>
