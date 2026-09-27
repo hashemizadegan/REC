@@ -5,7 +5,7 @@ import { AppConfig } from './config/env.config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors(); // اجازه به فرانت‌اند برای فراخوانی APIها
-  
+  app.setGlobalPrefix('api');
   const port = AppConfig.port;
   await app.listen(port);
   console.log(`REC Platform backend running on: http://localhost:${port}`);
