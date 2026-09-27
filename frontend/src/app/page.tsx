@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 type Language = 'fa' | 'ru' | 'en';
 type AuthMode = 'login' | 'register' | null;
 
-interface UserProfile {
+interface GAPGPTMASKTOKENix0xtrg217aX0X {
   id: string;
   companyName: string;
   email: string;
@@ -209,7 +209,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
   const [authModal, setAuthModal] = useState<AuthMode>(null);
 
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<GAPGPTMASKTOKENix0xtrg217aX1X | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -290,7 +290,7 @@ export default function HomePage() {
     if (!loginEmail || !loginPassword) return;
 
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: UserProfile = {
+      const adminSession: GAPGPTMASKTOKENix0xtrg217aX2X = {
         id: 'admin-1',
         companyName: 'REC Platform Central Authority',
         email: 'admin@rec-trade.com',
@@ -308,7 +308,7 @@ export default function HomePage() {
       return;
     }
 
-    const session: UserProfile = {
+    const session: GAPGPTMASKTOKENix0xtrg217aX3X = {
       id: `comp-${Date.now()}`,
       companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
@@ -353,7 +353,7 @@ export default function HomePage() {
       ...prev,
     ]);
 
-    const session: UserProfile = {
+    const session: GAPGPTMASKTOKENix0xtrg217aX4X = {
       id: newCompany.id,
       companyName: regName,
       email: regEmail,
@@ -412,7 +412,7 @@ export default function HomePage() {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-      {/* Header */}
+      {/* هدر سایت */}
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -441,7 +441,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* بخش لاگین / وضعیت کاربری */}
+            {/* بخش ورود / پروفایل کاربری */}
             {user ? (
               <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
                 <div>
@@ -463,6 +463,7 @@ export default function HomePage() {
                       {user.kybStatus === 'VERIFIED'
                         ? t.kybVerified
                         : user.kybStatus === 'REJECTED'
+                        ? t.kybRejected
                         : t.kybPending}
                     </span>
                   </div>
@@ -494,7 +495,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* تب‌های اصلی */}
+      {/* ناوبری تب‌ها */}
       <main className="max-w-7xl mx-auto w-full px-6 py-8 flex-1">
         <div className="flex border-b border-slate-800 mb-8 gap-6 text-sm">
           <button
@@ -531,7 +532,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* کاتالوگ */}
+        {/* ۱. تب کاتالوگ کالایی */}
         {activeTab === 'catalog' && (
           <div>
             {!user && (
@@ -596,7 +597,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* استعلام RFQ */}
+        {/* ۲. تب استعلام RFQ */}
         {activeTab === 'rfq' && (
           <div className="max-w-2xl mx-auto border border-slate-800 bg-slate-950/60 p-8 rounded-2xl">
             <h2 className="text-lg font-bold text-white mb-2">{t.rfqTitle}</h2>
@@ -677,7 +678,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* پنل نظارت و ادمین */}
+        {/* ۳. تب پنل مدیریت (Admin) */}
         {activeTab === 'admin' && user?.role === 'ADMIN' && (
           <div className="space-y-8">
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
@@ -758,13 +759,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* لاگ رویدادها */}
+            {/* لاگ زنده رویدادهای سیستم */}
             <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
               <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
- className="flex items-center gap-3">
-                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
-                      <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
-0 flex items-center justify-between gap-4 text-xs font-mono"
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {auditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-4 text-xs font-mono"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
@@ -911,7 +913,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Footer */}
+      {/* فوتر */}
       <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
         REC Platform &copy; 2026 — Russia-Iran Cross-Border Settlement & Trade Gateway
       </footer>
