@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 type Language = 'fa' | 'ru' | 'en';
 type AuthMode = 'login' | 'register' | null;
 
-interface CompanyUser {
+interface UserSession {
   id: string;
   companyName: string;
   email: string;
@@ -31,7 +31,7 @@ export default function HomePage() {
   const [authModal, setAuthModal] = useState<AuthMode>(null);
 
   // وضعیت کاربر لاگین‌شده
-  const [user, setUser] = useState<CompanyUser | null>(null);
+  const [user, setUser] = useState<UserSession | null>(null);
 
   // فرم لاگین
   const [loginEmail, setLoginEmail] = useState('');
@@ -115,14 +115,14 @@ export default function HomePage() {
     e.preventDefault();
     if (!loginEmail || !loginPassword) return;
 
-    // ورود به عنوان ادمین سامانه
+    // لاگین مدیر سیستم
     if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: CompanyUser = {
+      const adminSession: UserSession = {
         id: 'admin-1',
-        companyName: 'مدیریت سامانه REC',
+        companyName: 'مدیریت سامانه بازرگانی REC',
         email: 'admin@rec-trade.com',
         country: 'IR',
-        taxId: '0000000000',
+        taxId: '10100000000',
         kybStatus: 'VERIFIED',
         isGoldenList: true,
         role: 'ADMIN',
@@ -136,41 +136,9 @@ export default function HomePage() {
     }
 
     // ورود شرکت‌های عادی
-    const session: CompanyUser = {
+    const session: UserSession = {
       id: `comp-${Date.now()}`,
-      companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'بازرگانی پارس آریا',
-      email: loginEmail,
-      country: loginEmail.includes('ru') ? 'RU' : 'IR',
-      taxId: loginEmail.includes('ru') ? '7701234567' : '10103456789',
-      kybStatus: 'VERIFIED',
-      isGoldenList: true,
-      role: 'COMPANY',
-    };
-
-    setUser(session);
-    localStorage.setItem('rec_user_session', JSON.stringify(session));
-    setAuthModal(null);
-    setLoginPassword('');
-  };
-
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!regName || !regVERIFIED',
-        isGoldenList: true,
-        role: 'ADMIN',
-      };
-      setUser(adminSession);
-      localStorage.setItem('rec_user_session', JSON.stringify(adminSession));
-      setActiveTab('admin');
-      setAuthModal(null);
-      setLoginPassword('');
-      return;
-    }
-
-    // ورود شرکت‌های عادی
-    const session: CompanyUser = {
-      id: `comp-${Date.now()}`,
-      companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'بازرگانی پارس آریا',
+      companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
       email: loginEmail,
       country: loginEmail.includes('ru') ? 'RU' : 'IR',
       taxId: loginEmail.includes('ru') ? '7701234567' : '10103456789',
@@ -200,8 +168,50 @@ export default function HomePage() {
       isGoldenList: false,
     };
 
-    // اضافه کردن به لیست در انتظار بررسی ادمین
-    setPendingCompanies((prev) => [
+    // افزودن به لیست شرکت‌ها برای بررسی توسط ادمین
+    setPendingCompanies((prev) => [newCompany, ...prev]);
+
+    // ثبت در لاگ زنده سیستم
+    setAuditLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString('fa-IR'),
+        action: 'REGISTER',
+        actorEmail: regEmail,
+        details: `شرکت جدید "${regName}" (${regCountry === 'IR' ? 'ایران' : 'روسیه'}) فرم KYB را ثبت کرد.`,
+      },
+      ...prev,
+    ]);
+
+    const session: UserSession = {
+      id: newCompany.id,
+      companyName: regName,
+      email: regEmail,
+      country: regCountry,
+      taxId: regTaxId,
+      kybStatus: 'PENDING',
+      isGoldenList: false,
+      role: 'COMPANY',
+    };
+
+    setUser(session);
+    localStorage.setItem('rec_user_session', JSON.stringify(session));
+    setAuthModal(null);
+    setRegName('');
+    setRegEmail('');
+    setRegPassword('');
+    setRegTaxId('');
+    setRegPhone('');
+  };
+
+  const handleRfqSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const rfqId = `RFQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    setRfqSuccess(rfqId);
+
+    setAuditLogs((prev) => [
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toLocaleTimeString('fa-IR'),
@@ -213,7 +223,7 @@ export default function HomePage() {
     ]);
   };
 
-  // عملیات ادمین برای تغییر وضعیت KYB
+  // تأیید یا رد مدرک توسط مدیر
   const handleUpdateKyb = (companyId: string, newStatus: 'VERIFIED' | 'REJECTED') => {
     setPendingCompanies((prev) =>
       prev.map((c) => (c.id === companyId ? { ...c, kybStatus: newStatus } : c))
@@ -225,7 +235,7 @@ export default function HomePage() {
         timestamp: new Date().toLocaleTimeString('fa-IR'),
         action: 'KYB_UPDATE',
         actorEmail: user?.email || 'admin@rec-trade.com',
-        details: `وضعیت شرکت با شناسه ${companyId} توسط مدیر سامانه به "${newStatus === 'VERIFIED' ? 'تأیید شده' : 'رد شده'}" تغییر یافت.`,
+        details: `وضعیت شرکت با شناسه ${companyId} توسط مدیر به "${newStatus === 'VERIFIED' ? 'تأیید شده' : 'رد شده'}" تغییر یافت.`,
       },
       ...prev,
     ]);
@@ -235,7 +245,7 @@ export default function HomePage() {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-      {/* هدر بالایی */}
+      {/* Header */}
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -465,4 +475,281 @@ export default function HomePage() {
                     />
                   </div>
                   <div>
-                    <label
+                    <label className="block text-slate-300 mb-1.5 font-medium">اینکوترمز</label>
+                    <select
+                      value={incoterms}
+                      onChange={(e) => setIncoterms(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="FCA">FCA (انزلی / آستارا)</option>
+                      <option value="CPT">CPT (آستراخان روسیه)</option>
+                      <option value="FOB">FOB (بندر امیرآباد)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 mb-1.5 font-medium">قیمت پیشنهادی (USD/MT)</label>
+                  <input
+                    type="text"
+                    value={targetPrice}
+                    onChange={(e) => setTargetPrice(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition"
+                >
+                  ثبت رسمی استعلام RFQ
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* پنل نظارت و ادمین (Admin View) */}
+        {activeTab === 'admin' && user?.role === 'ADMIN' && (
+          <div className="space-y-8">
+            {/* جدول بررسی و احراز هویت شرکت‌ها (KYB Verification Queue) */}
+            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
+              <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
+                <span>📋 کارتابل تأیید هویت شرکت‌ها (KYB Review)</span>
+                <span className="text-xs font-normal text-slate-400">تعداد شرکت‌ها: {pendingCompanies.length}</span>
+              </h2>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">نام شرکت</th>
+                      <th className="p-3">کشور</th>
+                      <th className="p-3">شناسه ملی / ИНН</th>
+                      <th className="p-3">ایمیل و تلفن</th>
+                      <th className="p-3">وضعیت فعلی</th>
+                      <th className="p-3 text-center">عملیات ادمین</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {pendingCompanies.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-900/50">
+                        <td className="p-3 font-semibold text-white">{c.name}</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] ${
+                              c.country === 'IR' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'
+                            }`}
+                          >
+                            {c.country === 'IR' ? 'ایران (IR)' : 'روسیه (RU)'}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono">{c.taxId}</td>
+                        <td className="p-3 text-slate-400">
+                          <div>{c.email}</div>
+                          <div className="text-[10px] text-slate-500">{c.phone}</div>
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                              c.kybStatus === 'VERIFIED'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : c.kybStatus === 'REJECTED'
+                                ? 'bg-rose-500/20 text-rose-400'
+                                : 'bg-amber-500/20 text-amber-300'
+                            }`}
+                          >
+                            {c.kybStatus === 'VERIFIED'
+                              ? 'تأیید شده'
+                              : c.kybStatus === 'REJECTED'
+                              ? 'رد شده'
+                              : 'در انتظار مدارک'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
+                            >
+                              تأیید هویت
+                            </button>
+                            <button
+                              onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
+                              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
+                            >
+                              رد
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* لاگ زنده تمام اتفاقات سایت (Audit Log) */}
+            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
+              <h2 className="text-base font-bold text-white mb-4">
+                📜 گزارش زنده رویدادهای سیستم (Audit & Activity Logs)
+              </h2>
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {auditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-lg bg-slate-900 border border-slate-800/80 flex items-start justify-between gap-4 text-xs"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-emerald-400 font-semibold">{log.action}</span>
+                        <span className="text-slate-500 text-[11px]">{log.actorEmail}</span>
+                      </div>
+                      <p className="text-slate-200">{log.details}</p>
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-mono whitespace-nowrap">{log.timestamp}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* مدال ورود و ثبت‌نام */}
+      {authModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <h3 className="font-bold text-white text-base">
+                {authModal === 'login' ? 'ورود به حساب کاربری / پنل ادمین' : 'ثبت‌نام شرکت و ارسال مدارک (KYB)'}
+              </h3>
+              <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
+                ✕
+              </button>
+            </div>
+
+            {authModal === 'login' ? (
+              <form onSubmit={handleLoginSubmit} className="space-y-4 mt-5 text-xs">
+                <div>
+                  <label className="block text-slate-300 mb-1.5">ایمیل رسمی</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@rec-trade.com یا ایمیل شرکتی"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1.5">رمز عبور</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
+                >
+                  ورود
+                </button>
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAuthModal('register')}
+                    className="text-emerald-400 hover:underline text-xs"
+                  >
+                    ثبت‌نام شرکت جدید (KYB)
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleRegisterSubmit} className="space-y-3 mt-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 mb-1">نام رسمی شرکت</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="نام ثبتی در روزنامه رسمی یا ЕГРЮЛ"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 mb-1">کشور</label>
+                    <select
+                      value={regCountry}
+                      onChange={(e) => setRegCountry(e.target.value as 'IR' | 'RU')}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                    >
+                      <option value="IR">ایران (IR)</option>
+                      <option value="RU">روسیه (RU)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 mb-1">شناسه ملی / ИНН</label>
+                    <input
+                      type="text"
+                      required
+                      value={regTaxId}
+                      onChange={(e) => setRegTaxId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">ایمیل شرکتی</label>
+                  <input
+                    type="email"
+                    required
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">تلفن تماس</label>
+                  <input
+                    type="tel"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">رمز عبور</label>
+                  <input
+                    type="password"
+                    required
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
+                >
+                  ارسال مدارک برای بررسی KYB
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* فوتر */}
+      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        REC Platform &copy; 2026 — Russia-Iran Cross-Border Settlement & Trade Gateway
+      </footer>
+    </div>
+  );
+}
