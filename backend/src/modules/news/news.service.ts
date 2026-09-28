@@ -1,52 +1,57 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateNewsDto } from './dto/create-news.dto';
+import { Injectable } from '@nestjs/common';
 
 export interface NewsItem {
   id: string;
-  title: { fa: string; ru: string; en: string };
-  summary: { fa: string; ru: string; en: string };
-  content: { fa: string; ru: string; en: string };
-  imageUrl?: string;
-  published: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  date: string;
+  category: string;
+  title: Record<string, string>;
+  summary: Record<string, string>;
+  content?: Record<string, string>;
 }
 
 @Injectable()
 export class NewsService {
-  // در صورت استفاده از TypeORM/Prisma با Repository متصل می‌شود
-  private newsList: NewsItem[] = [];
+  private readonly news: NewsItem[] = [
+    {
+      id: 'news-001',
+      date: '2026-09-28',
+      category: 'Trade Regulations',
+      title: {
+        fa: 'توافق نهایی تعرفه ترجیحی اوراسیا و ایران در بخش کشاورزی',
+        ru: 'Окончательное соглашение о преференциальных тарифах ЕАЭС и Ирана',
+        en: 'Final Preferential Tariff Agreement between EAEU and Iran in Agriculture',
+      },
+      summary: {
+        fa: 'کاهش عوارض گمرکی برای صادرات خشکبار و میوه تازه از مبدا ایران به مقاصد فدراسیون روسیه.',
+        ru: 'Снижение таможенных пошлин на экспорт сухофруктов и свежих фруктов из Ирана в РФ.',
+        en: 'Reduction of customs duties on fresh fruits and dried fruits exported from Iran to Russia.',
+      },
+    },
+    {
+      id: 'news-002',
+      date: '2026-09-27',
+      category: 'Logistics',
+      title: {
+        fa: 'افتتاح خط منظم کانتینری رو-رو در مسیر بندر انزلی – آستراخان',
+        ru: 'Запуск регулярной паромной линии Ро-Ро Анзали – Астрахань',
+        en: 'Launch of Regular Ro-Ro Container Service on Anzali – Astrakhan Route',
+      },
+      summary: {
+        fa: 'بهبود زمان سیر کالاهای فاسدشدنی و کاهش زمان انتظار ترخیص کانتینرهای یخچالی.',
+        ru: 'Сокращение сроков доставки скоропортящихся грузов и времени таможенного оформления.',
+        en: 'Reduced transit times for perishable cargo and expedited reefer container clearance.',
+      },
+    },
+  ];
 
-  async findAll(lang: 'fa' | 'ru' | 'en' = 'fa', onlyPublished = true) {
-    const items = onlyPublished ? this.newsList.filter(n => n.published) : this.newsList;
-    return items.map(n => ({
-      id: n.id,
-      title: n.title[lang] || n.title.en,
-      summary: n.summary[lang] || n.summary.en,
-      content: n.content[lang] || n.content.en,
-      imageUrl: n.imageUrl,
-      createdAt: n.createdAt,
+  getNews(lang: string = 'fa') {
+    const selectedLang = ['fa', 'ru', 'en'].includes(lang) ? lang : 'fa';
+    return this.news.map((item) => ({
+      id: item.id,
+      date: item.date,
+      category: item.category,
+      title: item.title[selectedLang] || item.title.en,
+      summary: item.summary[selectedLang] || item.summary.en,
     }));
-  }
-
-  async findOne(id: string) {
-    const item = this.newsList.find(n => n.id === id);
-    if (!item) throw new NotFoundException(`News with ID ${id} not found`);
-    return item;
-  }
-
-  async create(dto: CreateNewsDto): Promise<NewsItem> {
-    const newItem: NewsItem = {
-      id: Buffer.from(Date.now().toString()).toString('base64url'),
-      title: { fa: dto.titleFa, ru: dto.titleRu, en: dto.titleEn },
-      summary: { fa: dto.summaryFa, ru: dto.summaryRu, en: dto.summaryEn },
-      content: { fa: dto.contentFa, ru: dto.contentRu, en: dto.contentEn },
-      imageUrl: dto.imageUrl,
-      published: dto.published ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.newsList.unshift(newItem);
-    return newItem;
   }
 }
