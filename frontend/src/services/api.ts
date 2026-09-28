@@ -23,13 +23,20 @@ export interface NewsItem {
 
 export interface CreateRfqPayload {
   companyName: string;
-  productTitle: string;
-  quantity: string;
+  productId?: string;
+  productName?: string;
+  volumeMT?: number;
+  destinationPort?: string;
+  sourceLang?: string;
+  // فیلدهای قبلی/اختیاری جهت سازگاری با سایر بخش‌ها
+  productTitle?: string;
+  quantity?: string;
   targetPrice?: string;
-  deliveryTerms: string;
-  destination: string;
-  preferredLanguage: string;
+  deliveryTerms?: string;
+  destination?: string;
+  preferredLanguage?: string;
   notes?: string;
+  [key: string]: unknown; // برای جلوگیری از خطای strict object literal
 }
 
 export interface RfqResponse {
