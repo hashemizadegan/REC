@@ -10,6 +10,7 @@ export interface CatalogProduct {
   specs?: string;
   standard?: string;
   description: string;
+  priceIndication?: string; // <-- اضافه شد
 }
 
 export interface NewsItem {
