@@ -1,104 +1,91 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://rec-production.up.railway.app';
 
-// --- انواع داده RFQ ---
-export interface CreateRfqPayload {
-  companyName: string;
-  productId: string;
-  productName: string;
-  volumeMT: number;
-  destinationPort: string;
-  sourceLang: 'fa' | 'ru' | 'en';
-}
-
-export interface RfqResponse {
-  id: string;
-  companyName: string;
-  productName: string;
-  volumeMT: number;
-  destinationPort: string;
-  status: string;
-  createdAt: string;
-  translations?: Record<string, string>;
-}
-
-// --- انواع داده کاتالوگ و اخبار ---
 export interface CatalogProduct {
   id: string;
   name: string;
   category: string;
   origin: string;
   hsCode: string;
-  specs: string;
-  standard: string;
-  priceIndication?: string;
+  specs?: string;
+  standard?: string;
+  description: string;
 }
 
 export interface NewsItem {
   id: string;
-  title: string;
-  summary: string;
-  content?: string;
   date: string;
   category: string;
+  title: string;
+  summary: string;
 }
 
-// --- دریافت کاتالوگ محصولات ---
-export async function fetchCatalog(lang: string = 'fa'): Promise<CatalogProduct[] | null> {
+export interface CreateRfqPayload {
+  companyName: string;
+  productTitle: string;
+  quantity: string;
+  targetPrice?: string;
+  deliveryTerms: string;
+  destination: string;
+  preferredLanguage: string;
+  notes?: string;
+}
+
+export interface RfqResponse {
+  id: string;
+  status: string;
+  createdAt: string;
+  message?: string;
+}
+
+// دریافت محصولات کاتالوگ بر اساس زبان انتخابی
+export async function fetchCatalog(lang: string = 'fa'): Promise<CatalogProduct[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/catalog?lang=${encodeURIComponent(lang)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const res = await fetch(`${API_BASE_URL}/api/catalog?lang=${lang}`, {
       next: { revalidate: 60 },
     });
-
     if (!res.ok) {
-      throw new Error(`Failed to fetch catalog: ${res.statusText}`);
+      console.warn(`Catalog API returned status: ${res.status}`);
+      return [];
     }
-
     return await res.json();
   } catch (error) {
-    console.warn('Backend catalog API unreachable, falling back to static data:', error);
-    return null;
+    console.error('Error fetching catalog:', error);
+    return [];
   }
 }
 
-// --- ثبت درخواست استعلام قیمت (RFQ) ---
-export async function submitRfq(data: CreateRfqPayload): Promise<RfqResponse> {
-  const res = await fetch(`${API_BASE_URL}/rfq`, {
+// دریافت اخبار تجاری و مقررات بر اساس زبان
+export async function fetchNews(lang: string = 'fa'): Promise<NewsItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/news?lang=${lang}`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) {
+      console.warn(`News API returned status: ${res.status}`);
+      return [];
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching news:', error);
+    return [];
+  }
+}
+
+// ثبت RFQ
+export async function submitRfq(payload: CreateRfqPayload): Promise<RfqResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/rfq`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
-    throw new Error(`RFQ submission failed with status: ${res.status}`);
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to submit RFQ');
   }
 
-  return await res.json();
-}
-
-// --- دریافت اخبار و تحلیل‌ها ---
-export async function fetchNews(lang: string = 'fa'): Promise<NewsItem[] | null> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/news?lang=${encodeURIComponent(lang)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      next: { revalidate: 60 },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch news: ${res.statusText}`);
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.warn('Backend news API unreachable, falling back to static data:', error);
-    return null;
-  }
+  return res.json();
 }
