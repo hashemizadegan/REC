@@ -12,12 +12,7 @@ import {
 
 type Language = 'fa' | 'ru' | 'en';
 
-interface FallbackProduct extends CatalogProduct {
-  description: Record<Language, string>;
-  minOrder: string;
-}
-
-const STATIC_FALLBACK_PRODUCTS: FallbackProduct[] = [
+const STATIC_FALLBACK_PRODUCTS: CatalogProduct[] = [
   {
     id: 'prod-pistachio-akbari',
     name: 'پسته اکبری صادراتی',
@@ -27,12 +22,7 @@ const STATIC_FALLBACK_PRODUCTS: FallbackProduct[] = [
     specs: 'انس ۲۰-۲۲، رطوبت کمتر از ۵٪، گواهی تست آفلاتوکسین منفی',
     standard: 'GOST 32287 / ISIRI',
     priceIndication: '$11,500 - $12,800 / MT (FOB Anzali)',
-    minOrder: '20 MT (1 FCL)',
-    description: {
-      fa: 'تولید دست‌اول باغ‌های پسته رفسنجان مطابق با استاندارد سلامت نباتی و ایمنی غذایی فدراسیون روسیه.',
-      ru: 'Экспортные фисташки Акбари высшего качества, сертифицированные по стандартам фитосанитарии РФ.',
-      en: 'Premium Akbari Pistachios fully tested for aflatoxins and certified for Russian retail networks.',
-    },
+    description: 'تولید دست‌اول باغ‌های پسته رفسنجان مطابق با استاندارد سلامت نباتی و ایمنی غذایی فدراسیون روسیه.',
   },
   {
     id: 'prod-dates-mazafati',
@@ -43,12 +33,7 @@ const STATIC_FALLBACK_PRODUCTS: FallbackProduct[] = [
     specs: 'رطوبت ۲۸-۳۲٪، بسته‌بندی ۵۰۰ گرمی شرینک در کارتن مادر',
     standard: 'GOST 6882 / Halal / ISO 22000',
     priceIndication: '$1,850 - $2,200 / MT (CFR Astrakhan)',
-    minOrder: '22 MT (Reefer Container)',
-    description: {
-      fa: 'خرمای مضافتی مرغوب آماده صادرات مستقیم به زنجیره‌های خرده‌فروشی روسیه نظیر Magnit و X5.',
-      ru: 'Иранские финики Мазафати высшего сорта в экспортной упаковке для торговых сетей РФ.',
-      en: 'Top-grade Mazafati Dates packed in reefer containers for direct customs clearance at Astrakhan.',
-    },
+    description: 'خرمای مضافتی مرغوب آماده صادرات مستقیم به زنجیره‌های خرده‌فروشی روسیه.',
   },
   {
     id: 'prod-fertilizer-urea',
@@ -59,12 +44,7 @@ const STATIC_FALLBACK_PRODUCTS: FallbackProduct[] = [
     specs: 'نیتروژن ۴۶٪، بیورت حداکثر ۱٪، رطوبت ۰.۵٪',
     standard: 'GOST 2081 / International Grade',
     priceIndication: '$340 - $370 / MT (FOB Bandar Abbas/Anzali)',
-    minOrder: '500 MT',
-    description: {
-      fa: 'کود کشاورزی با استاندارد بین‌المللی برای تامین نیازمندی‌های کشت و صنعت اوراسیا.',
-      ru: 'Гранулированный карбамид (мочевина 46%) для сельскохозяйственных предприятий.',
-      en: 'Granular Urea 46% for large-scale agricultural and trade partnerships within INSTC.',
-    },
+    description: 'کود کشاورزی با استاندارد بین‌المللی برای تامین نیازمندی‌های کشت و صنعت اوراسیا.',
   },
 ];
 
@@ -73,21 +53,21 @@ const STATIC_FALLBACK_NEWS: Record<Language, NewsItem[]> = {
     {
       id: 'news-1',
       title: 'اجرای موافقت‌نامه تجارت آزاد ایران و اتحادیه اقتصادی اوراسیا (EAEU)',
-      summary: 'تسهیل تعرفه‌ای ۹۰ درصد از اقلام کشاورزی و صنعتی میان ایران و ۵ کشور عضو اوراسیا از ماه آینده آغاز می‌شود.',
+      summary: 'تسهیل تعرفه‌ای ۹۰ درصد از اقلام کشاورزی و صنعتی میان ایران و ۵ کشور عضو اوراسیا.',
       date: '۱۴۰۳/۰۷/۰۵',
       category: 'گمرک و تعرفه',
     },
     {
       id: 'news-2',
       title: 'افتتاح خط منظم کانتینری یخچال‌دار در کریدور خزر (امیرآباد - آستاراخان)',
-      summary: 'امکان ترانزیت کالا‌های فاسدشدنی و میوه و صیفی‌جات در کمتر از ۴۸ ساعت با هماهنگی سازمان بنادر دو کشور فراهم شد.',
+      summary: 'امکان ترانزیت کالا‌های فاسدشدنی و صیفی‌جات در کمتر از ۴۸ ساعت با هماهنگی بنادر.',
       date: '۱۴۰۳/۰۷/۰۱',
       category: 'لجستیک و ترانزیت',
     },
     {
       id: 'news-3',
       title: 'پروتکل پذیرش متقابل استانداردهای سلامت نباتی (Rosselkhoznadzor)',
-      summary: 'آزمایشگاه‌های مرجع ایران برای صدور گواهی استاندارد بهداشتی محصولات صادراتی به روسیه تایید صلاحیت شدند.',
+      summary: 'آزمایشگاه‌های مرجع ایران برای صدور گواهی بهداشتی محصولات صادراتی به روسیه تایید شدند.',
       date: '۱۴۰۳/۰۶/۲۵',
       category: 'استاندارد و ایمنی',
     },
@@ -96,7 +76,7 @@ const STATIC_FALLBACK_NEWS: Record<Language, NewsItem[]> = {
     {
       id: 'news-1',
       title: 'Вступление в силу соглашения о свободной торговле Иран-ЕАЭС',
-      summary: 'Снижение пошлин на 90% товарных позиций в сфере агропромышленного комплекса и машиностроения.',
+      summary: 'Снижение пошлин на 90% товарных позиций в сфере агропромышленного комплекса.',
       date: '2026-09-25',
       category: 'Таможня и пошлины',
     },
@@ -110,7 +90,7 @@ const STATIC_FALLBACK_NEWS: Record<Language, NewsItem[]> = {
     {
       id: 'news-3',
       title: 'Протокол Россельхознадзора по взаимному признанию фитосанитарных норм',
-      summary: 'Упрощенный ввоз фисташек, фиников и плодоовощной продукции через специализированные пограничные терминалы.',
+      summary: 'Упрощенный ввоз фисташек, фиников и плодоовощной продукции через терминалы.',
       date: '2026-09-15',
       category: 'Стандарты и безопасность',
     },
@@ -126,7 +106,7 @@ const STATIC_FALLBACK_NEWS: Record<Language, NewsItem[]> = {
     {
       id: 'news-2',
       title: 'Dedicated Caspian Reefer Container Service Launched',
-      summary: 'Direct express maritime route between Amirabad and Astrakhan operational for fresh produce exporters.',
+      summary: 'Direct express maritime route between Amirabad and Astrakhan operational for fresh produce.',
       date: '2026-09-20',
       category: 'Logistics',
     },
@@ -166,7 +146,6 @@ const UI_TEXT = {
     companyLabel: 'نام شرکت / شخصیت حقوقی خریدار',
     volumeLabel: 'حجم درخواستی (تن متریک)',
     portLabel: 'بندر / پایانه تحویل نهایی',
-    selectProduct: 'محصول مورد نظر را انتخاب فرمایید',
     cancel: 'انصراف',
     send: 'ثبت و ارسال استعلام',
     successMsg: 'استعلام شما با موفقیت ثبت شد و در سیستم تطبیق کالا قرار گرفت.',
@@ -197,7 +176,6 @@ const UI_TEXT = {
     companyLabel: 'Наименование компании-покупателя',
     volumeLabel: 'Объем партии (метрических тонн)',
     portLabel: 'Порт назначения / Таможенный терминал',
-    selectProduct: 'Выберите необходимый товар',
     cancel: 'Отмена',
     send: 'Отправить запрос',
     successMsg: 'Ваш запрос успешно отправлен и зарегистрирован в реестре сделок.',
@@ -228,7 +206,6 @@ const UI_TEXT = {
     companyLabel: 'Buyer Legal Entity / Corporate Name',
     volumeLabel: 'Order Volume (Metric Tons)',
     portLabel: 'Destination Port / Border Terminal',
-    selectProduct: 'Select targeted commodity',
     cancel: 'Cancel',
     send: 'Submit RFQ Document',
     successMsg: 'RFQ has been submitted successfully to the trading network.',
@@ -242,7 +219,7 @@ export default function TradePortalPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [catalog, setCatalog] = useState<CatalogProduct[]>(STATIC_FALLBACK_PRODUCTS);
   const [news, setNews] = useState<NewsItem[]>(STATIC_FALLBACK_NEWS['fa']);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   // RFQ Modal State
   const [rfqModalOpen, setRfqModalOpen] = useState(false);
@@ -257,7 +234,6 @@ export default function TradePortalPage() {
   const t = UI_TEXT[lang];
   const isRtl = lang === 'fa';
 
-  // بارگذاری داده‌های کاتالوگ و اخبار از API بک‌اند
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
@@ -294,13 +270,11 @@ export default function TradePortalPage() {
     };
   }, [lang]);
 
-  // دسته‌بندی‌های یکتا
   const categories = useMemo(() => {
     const list = Array.from(new Set(catalog.map((p) => p.category)));
     return ['all', ...list];
   }, [catalog]);
 
-  // فیلتر هوشمند محصولات
   const filteredProducts = useMemo(() => {
     return catalog.filter((product) => {
       const matchCat = selectedCategory === 'all' || product.category === selectedCategory;
@@ -314,14 +288,12 @@ export default function TradePortalPage() {
     });
   }, [catalog, selectedCategory, searchTerm]);
 
-  // مدیریت باز کردن مودال RFQ
   const handleOpenRfq = (product?: CatalogProduct) => {
     setSelectedProductForRfq(product || catalog[0] || null);
     setRfqStatus('idle');
     setRfqModalOpen(true);
   };
 
-  // ثبت فرم RFQ
   const handleRfqSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductForRfq) return;
@@ -351,7 +323,7 @@ export default function TradePortalPage() {
 
   return (
     <div className={`min-h-screen bg-slate-900 text-slate-100 ${isRtl ? 'rtl' : 'ltr'}`} dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* 1. نوار اعلانات و شاخص‌های زنده بازار و گمرک */}
+      {/* 1. Market Ticker */}
       <section className="bg-slate-950 border-b border-slate-800 text-xs py-2 px-4">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
           <div className="flex items-center gap-2">
@@ -392,7 +364,7 @@ export default function TradePortalPage() {
         </div>
       </section>
 
-      {/* 2. سربرگ اصلی پورتال (Navigation Bar) */}
+      {/* 2. Header */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
@@ -422,7 +394,7 @@ export default function TradePortalPage() {
         </div>
       </header>
 
-      {/* 3. بخش ورودی و موتور جستجوی هوشمند تجاری (Hero & Gateway) */}
+      {/* 3. Hero / Gateway */}
       <section className="relative py-16 px-4 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 border-b border-slate-800">
         <div className="max-w-5xl mx-auto text-center">
           <span className="inline-block py-1 px-3 mb-4 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
@@ -435,7 +407,6 @@ export default function TradePortalPage() {
             {t.portalSubtitle}
           </p>
 
-          {/* موتور جستجوی پورتال با پشتیبانی از HS Code */}
           <div className="bg-slate-800/90 p-3 rounded-2xl border border-slate-700 shadow-2xl flex flex-col md:flex-row gap-3">
             <input
               type="text"
@@ -469,7 +440,7 @@ export default function TradePortalPage() {
         </div>
       </section>
 
-      {/* 4. ارکان چهارگانه پورتال (Four Pillars of Cross-Border Trade) */}
+      {/* 4. Strategic Pillars */}
       <section className="py-12 px-4 max-w-7xl mx-auto">
         <div className="text-center mb-10">
           <h3 className="text-2xl font-bold text-white mb-2">{t.pillarsTitle}</h3>
@@ -511,7 +482,7 @@ export default function TradePortalPage() {
         </div>
       </section>
 
-      {/* 5. کاتالوگ ارزیابی‌شده و استعلام کالا (Verified Golden Catalog) */}
+      {/* 5. Golden Catalog */}
       <section id="catalog" className="py-12 px-4 max-w-7xl mx-auto border-t border-slate-800">
         <div className="flex flex-wrap justify-between items-end mb-8 gap-4">
           <div>
@@ -579,7 +550,7 @@ export default function TradePortalPage() {
         )}
       </section>
 
-      {/* 6. مرکز داده‌ها و تحلیل‌های بازرگانی (Trade Intelligence & News Hub) */}
+      {/* 6. Intelligence & News Hub */}
       <section className="py-12 px-4 max-w-7xl mx-auto border-t border-slate-800">
         <div className="mb-8">
           <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Intelligence & Insights</span>
@@ -615,7 +586,7 @@ export default function TradePortalPage() {
         </div>
       </section>
 
-      {/* 7. فوتر رسمی و پورتال موسساتی */}
+      {/* 7. Footer */}
       <footer className="border-t border-slate-800 bg-slate-950 py-10 px-4 mt-12 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
@@ -633,7 +604,7 @@ export default function TradePortalPage() {
         </div>
       </footer>
 
-      {/* 8. مودال رسمی ثبت RFQ */}
+      {/* 8. RFQ Modal */}
       {rfqModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
