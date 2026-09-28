@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://rec-production.up.railway.app';
+  process.env.NEXT_PUBLIC_API_URL || 'https://rec-production-6b8d.up.railway.app'; // یا دامین اختصاصی Backend شما روی Railway
 
 export interface CatalogProduct {
   id: string;
