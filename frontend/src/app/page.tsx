@@ -1,931 +1,730 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  fetchCatalog,
+  fetchNews,
+  submitRfq,
+  CatalogProduct,
+  NewsItem,
+  CreateRfqPayload,
+} from '../services/api';
 
-type Lang = 'fa' | 'ru' | 'en';
-type ModalMode = 'login' | 'register' | null;
+type Language = 'fa' | 'ru' | 'en';
 
-interface RecProfile {
-  id: string;
-  companyName: string;
-  email: string;
-  country: 'IR' | 'RU';
-  taxId: string;
-  kybStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
-  isGoldenList: boolean;
-  role: 'COMPANY' | 'ADMIN';
+interface FallbackProduct extends CatalogProduct {
+  description: Record<Language, string>;
+  minOrder: string;
 }
 
-interface ActivityItem {
-  id: string;
-  timestamp: string;
-  action: string;
-  actorEmail: string;
-  details: string;
-}
+const STATIC_FALLBACK_PRODUCTS: FallbackProduct[] = [
+  {
+    id: 'prod-pistachio-akbari',
+    name: 'پسته اکبری صادراتی',
+    category: 'خشکبار / صیفی‌جات',
+    origin: 'ایران (رفسنجان/کرمان)',
+    hsCode: '080251',
+    specs: 'انس ۲۰-۲۲، رطوبت کمتر از ۵٪، گواهی تست آفلاتوکسین منفی',
+    standard: 'GOST 32287 / ISIRI',
+    priceIndication: '$11,500 - $12,800 / MT (FOB Anzali)',
+    minOrder: '20 MT (1 FCL)',
+    description: {
+      fa: 'تولید دست‌اول باغ‌های پسته رفسنجان مطابق با استاندارد سلامت نباتی و ایمنی غذایی فدراسیون روسیه.',
+      ru: 'Экспортные фисташки Акбари высшего качества, сертифицированные по стандартам фитосанитарии РФ.',
+      en: 'Premium Akbari Pistachios fully tested for aflatoxins and certified for Russian retail networks.',
+    },
+  },
+  {
+    id: 'prod-dates-mazafati',
+    name: 'خرما مضافتی بم (درجه یک)',
+    category: 'محصولات خرمایی',
+    origin: 'ایران (بم/جیرفت)',
+    hsCode: '080410',
+    specs: 'رطوبت ۲۸-۳۲٪، بسته‌بندی ۵۰۰ گرمی شرینک در کارتن مادر',
+    standard: 'GOST 6882 / Halal / ISO 22000',
+    priceIndication: '$1,850 - $2,200 / MT (CFR Astrakhan)',
+    minOrder: '22 MT (Reefer Container)',
+    description: {
+      fa: 'خرمای مضافتی مرغوب آماده صادرات مستقیم به زنجیره‌های خرده‌فروشی روسیه نظیر Magnit و X5.',
+      ru: 'Иранские финики Мазафати высшего сорта в экспортной упаковке для торговых сетей РФ.',
+      en: 'Top-grade Mazafati Dates packed in reefer containers for direct customs clearance at Astrakhan.',
+    },
+  },
+  {
+    id: 'prod-fertilizer-urea',
+    name: 'اوره گرانول ۴۶٪ صادراتی',
+    category: 'محصولات شیمیایی و پتروشیمی',
+    origin: 'ایران (عسلویه)',
+    hsCode: '310210',
+    specs: 'نیتروژن ۴۶٪، بیورت حداکثر ۱٪، رطوبت ۰.۵٪',
+    standard: 'GOST 2081 / International Grade',
+    priceIndication: '$340 - $370 / MT (FOB Bandar Abbas/Anzali)',
+    minOrder: '500 MT',
+    description: {
+      fa: 'کود کشاورزی با استاندارد بین‌المللی برای تامین نیازمندی‌های کشت و صنعت اوراسیا.',
+      ru: 'Гранулированный карбамид (мочевина 46%) для сельскохозяйственных предприятий.',
+      en: 'Granular Urea 46% for large-scale agricultural and trade partnerships within INSTC.',
+    },
+  },
+];
 
-const DICT = {
+const STATIC_FALLBACK_NEWS: Record<Language, NewsItem[]> = {
+  fa: [
+    {
+      id: 'news-1',
+      title: 'اجرای موافقت‌نامه تجارت آزاد ایران و اتحادیه اقتصادی اوراسیا (EAEU)',
+      summary: 'تسهیل تعرفه‌ای ۹۰ درصد از اقلام کشاورزی و صنعتی میان ایران و ۵ کشور عضو اوراسیا از ماه آینده آغاز می‌شود.',
+      date: '۱۴۰۳/۰۷/۰۵',
+      category: 'گمرک و تعرفه',
+    },
+    {
+      id: 'news-2',
+      title: 'افتتاح خط منظم کانتینری یخچال‌دار در کریدور خزر (امیرآباد - آستاراخان)',
+      summary: 'امکان ترانزیت کالا‌های فاسدشدنی و میوه و صیفی‌جات در کمتر از ۴۸ ساعت با هماهنگی سازمان بنادر دو کشور فراهم شد.',
+      date: '۱۴۰۳/۰۷/۰۱',
+      category: 'لجستیک و ترانزیت',
+    },
+    {
+      id: 'news-3',
+      title: 'پروتکل پذیرش متقابل استانداردهای سلامت نباتی (Rosselkhoznadzor)',
+      summary: 'آزمایشگاه‌های مرجع ایران برای صدور گواهی استاندارد بهداشتی محصولات صادراتی به روسیه تایید صلاحیت شدند.',
+      date: '۱۴۰۳/۰۶/۲۵',
+      category: 'استاندارد و ایمنی',
+    },
+  ],
+  ru: [
+    {
+      id: 'news-1',
+      title: 'Вступление в силу соглашения о свободной торговле Иран-ЕАЭС',
+      summary: 'Снижение пошлин на 90% товарных позиций в сфере агропромышленного комплекса и машиностроения.',
+      date: '2026-09-25',
+      category: 'Таможня и пошлины',
+    },
+    {
+      id: 'news-2',
+      title: 'Запуск регулярной рефрижераторной линии на Каспии (Амирабад — Астрахань)',
+      summary: 'Транзитное время сократилось до 48 часов для скоропортящейся продукции.',
+      date: '2026-09-20',
+      category: 'Логистика',
+    },
+    {
+      id: 'news-3',
+      title: 'Протокол Россельхознадзора по взаимному признанию фитосанитарных норм',
+      summary: 'Упрощенный ввоз фисташек, фиников и плодоовощной продукции через специализированные пограничные терминалы.',
+      date: '2026-09-15',
+      category: 'Стандарты и безопасность',
+    },
+  ],
+  en: [
+    {
+      id: 'news-1',
+      title: 'Full Implementation of Iran-EAEU Free Trade Agreement',
+      summary: 'Tariff elimination on over 90% of bilateral agricultural and industrial commodity exchanges.',
+      date: '2026-09-25',
+      category: 'Tariff & Policy',
+    },
+    {
+      id: 'news-2',
+      title: 'Dedicated Caspian Reefer Container Service Launched',
+      summary: 'Direct express maritime route between Amirabad and Astrakhan operational for fresh produce exporters.',
+      date: '2026-09-20',
+      category: 'Logistics',
+    },
+    {
+      id: 'news-3',
+      title: 'Phytosanitary Alignment Between Rosselkhoznadzor & Standard Org',
+      summary: 'Accredited testing labs streamline customs release times at border terminals.',
+      date: '2026-09-15',
+      category: 'Compliance',
+    },
+  ],
+};
+
+const UI_TEXT = {
   fa: {
-    siteTitle: 'سامانه بازرگانی ایران و روسیه (REC)',
-    siteSubtitle: 'مرکز تسویه ارزی و ثبت سفارشات کالایی B2B',
-    tabCatalog: 'کاتالوگ کالاهای صادراتی',
-    tabRfq: 'ثبت استعلام رسمی (RFQ)',
-    tabAdmin: '🛡️ پنل مدیریت و لاگ وقایع (Admin)',
-    adminBadge: 'مدیر سیستم',
-    kybVerified: 'احراز هویت شده (KYB تایید)',
-    kybPending: 'در انتظار بررسی مدارک',
-    kybRejected: 'رد شده',
-    logout: 'خروج',
-    login: 'ورود',
-    registerKyb: 'ثبت‌نام شرکت (KYB)',
-    catalogNotice: 'برای مشاهده قیمت قطعی و ارسال استعلام رسمی RFQ باید وارد حساب کاربری خود شوید.',
-    loginToOrder: 'ورود جهت سفارش',
-    rfqBtn: 'درخواست پیش‌فاکتور (RFQ)',
-    minVolume: 'حداقل حجم: ۲۰ تن متری',
-    rfqTitle: 'فرم درخواست استعلام قیمت و قرارداد (RFQ)',
-    rfqSubtitle: 'سفارشات مستقیماً در کارتابل مدیریت و کلیرینگ ارزی ثبت می‌شوند.',
-    rfqSuccessPrefix: 'درخواست شما با موفقیت ثبت گردید. شماره استعلام:',
-    rfqLoginPrompt: 'برای ارسال استعلام رسمی باید وارد سامانه شوید.',
-    loginToAccount: 'ورود به حساب',
-    productLabel: 'کالای انتخابی',
-    volumeLabel: 'حجم سفارش (تن)',
-    incotermsLabel: 'اینکوترمز',
-    targetPriceLabel: 'قیمت پیشنهادی (USD/MT)',
-    submitRfq: 'ثبت رسمی استعلام RFQ',
-    adminQueueTitle: '📋 کارتابل تأیید هویت شرکت‌ها (KYB Review)',
-    companiesCount: 'تعداد شرکت‌ها:',
-    thCompany: 'نام شرکت',
-    thCountry: 'کشور',
-    thTaxId: 'شناسه ملی / ИНН',
-    thContact: 'ایمیل و تلفن',
-    thStatus: 'وضعیت فعلی',
-    thAction: 'عملیات ادمین',
-    verifyAction: 'تأیید هویت',
-    rejectAction: 'رد مدارک',
-    adminLogsTitle: '📜 گزارش زنده رویدادهای سیستم (Audit & Activity Logs)',
-    modalLoginTitle: 'ورود به حساب کاربری / پنل ادمین',
-    modalRegTitle: 'ثبت‌نام شرکت و ارسال مدارک (KYB)',
-    emailLabel: 'ایمیل رسمی',
-    passwordLabel: 'رمز عبور',
-    companyNameLabel: 'نام رسمی شرکت',
-    countryLabel: 'کشور',
-    taxIdLabel: 'شناسه ملی / ИНН',
-    phoneLabel: 'تلفن تماس',
-    modalLoginBtn: 'ورود',
-    modalRegBtn: 'ارسال مدارک برای بررسی KYB',
-    modalSwitchToReg: 'ثبت‌نام شرکت جدید (KYB)',
-    iran: 'ایران (IR)',
-    russia: 'روسیه (RU)',
-    p1Name: 'پسته اکبری اعلا (Super Long)',
-    p1Desc: 'مطابق GOST روسیه و استانداردهای EAEU - سورتینگ تمام لیزری',
-    p1Origin: 'ایران (رفسنجان)',
-    p2Name: 'خرمای مضافتی ممتاز',
-    p2Desc: 'دارای گواهی استاندارد بهداشت فیتوسانیتری و قرنطینه گمرکی',
-    p2Origin: 'ایران (بم)',
+    portalTitle: 'پورتال ملی تجارت دوجانبه ایران و روسیه (REC)',
+    portalSubtitle: 'سامانه یکپارچه اعتبارسنجی تأمین‌کنندگان، استعلام مستقیم قیمت (RFQ) و ره‌گیری مبادلات کریدور شمال-جنوب',
+    searchPlaceholder: 'جستجو بر اساس نام محصول، کد تعرفه (HS Code) یا گواهینامه...',
+    allCategories: 'همه دسته‌ها',
+    viewCatalog: 'کاتالوگ ارزیابی‌شده',
+    verifiedBadge: 'تأییدشده در لیست طلایی (Golden List)',
+    submitRfqBtn: 'ارسال استعلام رسمی (RFQ)',
+    corridorStatus: 'وضعیت کریدور تجاری',
+    tickerRates: 'شاخص روبل/ریال: توافقی بانکی | پایانه آستارا: روان | بندر انزلی-آستاراخان: فعال | تعرفه EAEU: ترجیحی ۰٪',
+    pillarsTitle: 'چهار رکن عملیاتی پورتال تجاری',
+    pillar1Title: 'اعتبارسنجی حقوقی و KYB',
+    pillar1Desc: 'بررسی رسمی صلاحیت ثبت شرکت‌ها، توان تولید و گواهی‌های حسن انجام کار.',
+    pillar2Title: 'تسویه چندارزی و بریکس',
+    pillar2Desc: 'پشتیبانی از پروتکل‌های تسویه مستقیم روبل-ریال و پیام‌رسان‌های مالی غیروابسته.',
+    pillar3Title: 'استاندارد GOST و قرنطینه',
+    pillar3Desc: 'تطبیق آزمایشگاهی با موازین روس‌سلخوزنادزور (Rosselkhoznadzor) و سازمان ملی استاندارد.',
+    pillar4Title: 'ترانزیت و زنجیره سرد INSTC',
+    pillar4Desc: 'تضمین کانتینرهای یخچالی و رهگیری بارنامه از مبدا تا پایانه مقصد.',
+    newsHubTitle: 'مرکز تحلیل و اخبار بازرگانی اوراسیا',
+    newsHubSubtitle: 'تازه‌ترین دستورالعمل‌های گمرکی، عوارض صادراتی و فرصت‌های سرمایه‌گذاری متقابل',
+    rfqModalTitle: 'ثبت استعلام رسمی قیمت و قرارداد تأمین (RFQ)',
+    companyLabel: 'نام شرکت / شخصیت حقوقی خریدار',
+    volumeLabel: 'حجم درخواستی (تن متریک)',
+    portLabel: 'بندر / پایانه تحویل نهایی',
+    selectProduct: 'محصول مورد نظر را انتخاب فرمایید',
+    cancel: 'انصراف',
+    send: 'ثبت و ارسال استعلام',
+    successMsg: 'استعلام شما با موفقیت ثبت شد و در سیستم تطبیق کالا قرار گرفت.',
+    errorMsg: 'خطا در ثبت استعلام. لطفاً دوباره تلاش کنید.',
   },
   ru: {
-    siteTitle: 'Торговая платформа Россия–Иран (REC)',
-    siteSubtitle: 'B2B клиринг, взаиморасчеты и экспортно-импортные поставки',
-    tabCatalog: 'Каталог экспортных товаров',
-    tabRfq: 'Подать официальный запрос (RFQ)',
-    tabAdmin: '🛡️ Панель администратора и аудит (Admin)',
-    adminBadge: 'Администратор',
-    kybVerified: 'Верифицирован (KYB одобрен)',
-    kybPending: 'На проверке документов',
-    kybRejected: 'Отклонен',
-    logout: 'Выход',
-    login: 'Вход',
-    registerKyb: 'Регистрация компании (KYB)',
-    catalogNotice: 'Для просмотра фиксированных цен и подачи котировок RFQ необходимо войти в систему.',
-    loginToOrder: 'Войти для заказа',
-    rfqBtn: 'Запросить счет (RFQ)',
-    minVolume: 'Мин. партия: 20 тонн',
-    rfqTitle: 'Форма запроса коммерческого предложения (RFQ)',
-    rfqSubtitle: 'Заказы направляются напрямую в клиринговый шлюз и торговый реестр.',
-    rfqSuccessPrefix: 'Ваш запрос успешно зарегистрирован. Номер RFQ:',
-    rfqLoginPrompt: 'Для подачи официального запроса необходимо авторизоваться.',
-    loginToAccount: 'Войти в аккаунт',
-    productLabel: 'Выбор товара',
-    volumeLabel: 'Объем партии (тонн)',
-    incotermsLabel: 'Условия Инкотермс',
-    targetPriceLabel: 'Целевая цена (USD/MT)',
-    submitRfq: 'Отправить официальный запрос RFQ',
-    adminQueueTitle: '📋 Реестр верификации компаний (KYB Review)',
-    companiesCount: 'Всего компаний:',
-    thCompany: 'Компания',
-    thCountry: 'Страна',
-    thTaxId: 'ИНН / Tax ID',
-    thContact: 'Контакты',
-    thStatus: 'Статус',
-    thAction: 'Действие',
-    verifyAction: 'Подтвердить',
-    rejectAction: 'Отклонить',
-    adminLogsTitle: '📜 Журнал аудита операций в реальном времени (Audit Logs)',
-    modalLoginTitle: 'Вход в аккаунт / Панель администратора',
-    modalRegTitle: 'Регистрация компании и загрузка документов (KYB)',
-    emailLabel: 'Корпоративный Email',
-    passwordLabel: 'Пароль',
-    companyNameLabel: 'Официальное наименование компании',
-    countryLabel: 'Страна юрисдикции',
-    taxIdLabel: 'ИНН / ОГРН',
-    phoneLabel: 'Номер телефона',
-    modalLoginBtn: 'Войти в систему',
-    modalRegBtn: 'Подать заявку на KYB',
-    modalSwitchToReg: 'Регистрация нового участника (KYB)',
-    iran: 'Иран (IR)',
-    russia: 'Россия (RU)',
-    p1Name: 'Фисташки сорта Акбари (Super Long)',
-    p1Desc: 'Соответствие ГОСТ и техрегламентам ЕАЭС, лазерная калибровка',
-    p1Origin: 'Иран (Рафсанджан)',
-    p2Name: 'Финики Мазафати высший сорт',
-    p2Desc: 'Фитосанитарный сертификат, таможенная очистка без задержек',
-    p2Origin: 'Иран (Бам)',
+    portalTitle: 'Российско-Иранский B2B Торговый Портал (REC)',
+    portalSubtitle: 'Единая платформа верификации поставщиков, прямых запросов котировок (RFQ) и логистики коридора «Север–Юг»',
+    searchPlaceholder: 'Поиск по названию товара, коду ТН ВЭД (HS Code) или ГОСТ...',
+    allCategories: 'Все категории',
+    viewCatalog: 'Верифицированный каталог',
+    verifiedBadge: 'Проверено в «Золотом списке»',
+    submitRfqBtn: 'Подать официальный запрос (RFQ)',
+    corridorStatus: 'Статус торгового коридора',
+    tickerRates: 'Курс Рубль/Риал: межбанковский | Терминал Астара: штатно | Астрахань-Энзели: активен | Пошлины ЕАЭС: 0%',
+    pillarsTitle: 'Четыре ключевых опоры торговой платформы',
+    pillar1Title: 'Верификация контрагентов (KYB)',
+    pillar1Desc: 'Официальный скоринг правоспособности юридических лиц и мощностей производства.',
+    pillar2Title: 'Мультивалютные расчеты',
+    pillar2Desc: 'Расчеты в национальных валютах (рубль/риал) и прямые межбанковские шлюзы.',
+    pillar3Title: 'Стандарты ГОСТ и фитосанитария',
+    pillar3Desc: 'Полная интеграция с требованиями Россельхознадзора и национальных регуляторов.',
+    pillar4Title: 'Логистика и рефрижераторы МТК',
+    pillar4Desc: 'Морские и железнодорожные перевозки с контролем холодовой цепи.',
+    newsHubTitle: 'Центр торговой аналитики и новостей ЕАЭС',
+    newsHubSubtitle: 'Свежие таможенные предписания, изменения пошлин и экспортные директивы',
+    rfqModalTitle: 'Официальный запрос коммерческого предложения (RFQ)',
+    companyLabel: 'Наименование компании-покупателя',
+    volumeLabel: 'Объем партии (метрических тонн)',
+    portLabel: 'Порт назначения / Таможенный терминал',
+    selectProduct: 'Выберите необходимый товар',
+    cancel: 'Отмена',
+    send: 'Отправить запрос',
+    successMsg: 'Ваш запрос успешно отправлен и зарегистрирован в реестре сделок.',
+    errorMsg: 'Ошибка отправки запроса. Пожалуйста, повторите попытку.',
   },
   en: {
-    siteTitle: 'Iran-Russia Trade Gateway (REC)',
-    siteSubtitle: 'B2B Currency Clearing & Commodity Trading Platform',
-    tabCatalog: 'Export Goods Catalog',
-    tabRfq: 'Request for Quotation (RFQ)',
-    tabAdmin: '🛡️ Admin Audit & Control Panel',
-    adminBadge: 'System Admin',
-    kybVerified: 'Verified (KYB Approved)',
-    kybPending: 'KYB Under Review',
-    kybRejected: 'Rejected',
-    logout: 'Sign Out',
-    login: 'Sign In',
-    registerKyb: 'Company Registration (KYB)',
-    catalogNotice: 'Please sign in to view locked pricing and submit official RFQs.',
-    loginToOrder: 'Sign In to Trade',
-    rfqBtn: 'Request Quote (RFQ)',
-    minVolume: 'Min. Order: 20 MT',
-    rfqTitle: 'Official RFQ Submission Form',
-    rfqSubtitle: 'Orders are directly routed to the central FX clearing hub.',
-    rfqSuccessPrefix: 'Your RFQ has been submitted successfully. RFQ ID:',
-    rfqLoginPrompt: 'You must sign in to submit official trade requests.',
-    loginToAccount: 'Sign In',
-    productLabel: 'Select Product',
-    volumeLabel: 'Volume (Metric Tons)',
-    incotermsLabel: 'Incoterms 2020',
-    targetPriceLabel: 'Target Price (USD/MT)',
-    submitRfq: 'Submit Official RFQ',
-    adminQueueTitle: '📋 Company Verification Queue (KYB Review)',
-    companiesCount: 'Total Companies:',
-    thCompany: 'Company Name',
-    thCountry: 'Country',
-    thTaxId: 'Tax ID / INN',
-    thContact: 'Contact Info',
-    thStatus: 'KYB Status',
-    thAction: 'Admin Action',
-    verifyAction: 'Verify Company',
-    rejectAction: 'Reject',
-    adminLogsTitle: '📜 Live System Audit & Security Logs',
-    modalLoginTitle: 'Sign In / Admin Access',
-    modalRegTitle: 'Company KYB Onboarding Form',
-    emailLabel: 'Corporate Email',
-    passwordLabel: 'Password',
-    companyNameLabel: 'Registered Company Name',
-    countryLabel: 'Jurisdiction',
-    taxIdLabel: 'Tax ID / INN / Registration No.',
-    phoneLabel: 'Phone Number',
-    modalLoginBtn: 'Sign In',
-    modalRegBtn: 'Submit KYB Documents',
-    modalSwitchToReg: 'Register New Company (KYB)',
-    iran: 'Iran (IR)',
-    russia: 'Russia (RU)',
-    p1Name: 'Premium Akbari Pistachios (Super Long)',
-    p1Desc: 'Compliant with GOST & EAEU technical regulations, laser sorted',
-    p1Origin: 'Iran (Rafsanjan)',
-    p2Name: 'Grade-A Mazafati Fresh Dates',
-    p2Desc: 'Phytosanitary certified, optimized cold chain shipping',
-    p2Origin: 'Iran (Bam)',
+    portalTitle: 'Iran–Russia B2B Strategic Trade Portal (REC)',
+    portalSubtitle: 'Integrated gateway for supplier verification, official RFQ sourcing, and INSTC trade compliance',
+    searchPlaceholder: 'Search by product name, HS Code, or GOST standard...',
+    allCategories: 'All Categories',
+    viewCatalog: 'Verified Golden Catalog',
+    verifiedBadge: 'Golden List Verified',
+    submitRfqBtn: 'Issue Official RFQ',
+    corridorStatus: 'Trade Corridor Status',
+    tickerRates: 'RUB/IRR: Direct Bank Settled | Astara Border: Flowing | Anzali-Astrakhan: Operational | EAEU FTA: Active',
+    pillarsTitle: 'Strategic Pillars of the Trade Portal',
+    pillar1Title: 'KYB & Corporate Auditing',
+    pillar1Desc: 'Comprehensive cross-border legal due diligence and factory production verification.',
+    pillar2Title: 'Multi-Currency Clearing',
+    pillar2Desc: 'Sanction-resilient bilateral currency clearing mechanisms (Ruble-Rial & BRICS frameworks).',
+    pillar3Title: 'GOST & Regulatory Compliance',
+    pillar3Desc: 'Laboratory testing compliance with Rosselkhoznadzor phytosanitary standards.',
+    pillar4Title: 'INSTC Multimodal Logistics',
+    pillar4Desc: 'Seamless maritime and rail freight logistics with strict cold-chain supervision.',
+    newsHubTitle: 'Trade Intelligence & Eurasian News Hub',
+    newsHubSubtitle: 'Real-time customs rulings, tariff updates, and bilateral commercial insights',
+    rfqModalTitle: 'Issue Official Request for Quotation (RFQ)',
+    companyLabel: 'Buyer Legal Entity / Corporate Name',
+    volumeLabel: 'Order Volume (Metric Tons)',
+    portLabel: 'Destination Port / Border Terminal',
+    selectProduct: 'Select targeted commodity',
+    cancel: 'Cancel',
+    send: 'Submit RFQ Document',
+    successMsg: 'RFQ has been submitted successfully to the trading network.',
+    errorMsg: 'Submission failed. Please check network connectivity and retry.',
   },
 };
 
-export default function RECMainPage() {
-  const [lang, setLang] = useState<Lang>('fa');
-  const t = DICT[lang];
+export default function TradePortalPage() {
+  const [lang, setLang] = useState<Language>('fa');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [catalog, setCatalog] = useState<CatalogProduct[]>(STATIC_FALLBACK_PRODUCTS);
+  const [news, setNews] = useState<NewsItem[]>(STATIC_FALLBACK_NEWS['fa']);
+  const [loading, setLoading] = useState(false);
+
+  // RFQ Modal State
+  const [rfqModalOpen, setRfqModalOpen] = useState(false);
+  const [selectedProductForRfq, setSelectedProductForRfq] = useState<CatalogProduct | null>(null);
+  const [rfqForm, setRfqForm] = useState({
+    companyName: '',
+    volumeMT: 20,
+    destinationPort: 'Astrakhan Port (Russian Federation)',
+  });
+  const [rfqStatus, setRfqStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  const t = UI_TEXT[lang];
   const isRtl = lang === 'fa';
 
-  const [activeTab, setActiveTab] = useState<'catalog' | 'rfq' | 'admin'>('catalog');
-  const [authModal, setAuthModal] = useState<ModalMode>(null);
-
-  const [activeUser, setActiveUser] = useState<RecProfile | null>(null);
-
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regCountry, setRegCountry] = useState<'IR' | 'RU'>('IR');
-  const [regTaxId, setRegTaxId] = useState('');
-  const [regPhone, setRegPhone] = useState('');
-
-  const [selectedProduct, setSelectedProduct] = useState('pistachio-akbari');
-  const [volumeMt, setVolumeMt] = useState(25);
-  const [incoterms, setIncoterms] = useState('FCA');
-  const [targetPrice, setTargetPrice] = useState('9200');
-  const [rfqSuccess, setRfqSuccess] = useState<string | null>(null);
-
-  const [pendingCompanies, setPendingCompanies] = useState<Array<{
-    id: string;
-    name: string;
-    country: 'IR' | 'RU';
-    taxId: string;
-    email: string;
-    phone: string;
-    kybStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
-    isGoldenList: boolean;
-  }>>([
-    {
-      id: 'comp-102',
-      name: 'بازرگانی پارس آریا',
-      country: 'IR',
-      taxId: '10103456789',
-      email: 'info@parsaria.ir',
-      phone: '+98 21 88990011',
-      kybStatus: 'PENDING',
-      isGoldenList: false,
-    },
-    {
-      id: 'comp-103',
-      name: 'ООО Волга Трейд',
-      country: 'RU',
-      taxId: '7722334455',
-      email: 'export@volgatrade.ru',
-      phone: '+7 844 233-11-22',
-      kybStatus: 'PENDING',
-      isGoldenList: false,
-    },
-  ]);
-
-  const [auditLogs, setAuditLogs] = useState<ActivityItem[]>([
-    {
-      id: 'log-1',
-      timestamp: new Date().toLocaleTimeString(),
-      action: 'LOGIN',
-      actorEmail: 'admin@rec-trade.com',
-      details: 'Administrator logged in to oversight dashboard.',
-    },
-    {
-      id: 'log-2',
-      timestamp: new Date(Date.now() - 3600000).toLocaleTimeString(),
-      action: 'REGISTER',
-      actorEmail: 'export@volgatrade.ru',
-      details: 'ООО Волга Трейд uploaded KYB documentation.',
-    },
-  ]);
-
+  // بارگذاری داده‌های کاتالوگ و اخبار از API بک‌اند
   useEffect(() => {
-    const saved = localStorage.getItem('rec_user_session');
-    if (saved) {
+    let isMounted = true;
+    async function loadData() {
+      setLoading(true);
       try {
-        const u = JSON.parse(saved);
-        setActiveUser(u);
-      } catch (e) {
-        console.error(e);
+        const [apiCatalog, apiNews] = await Promise.all([
+          fetchCatalog(lang),
+          fetchNews(lang),
+        ]);
+
+        if (isMounted) {
+          if (apiCatalog && apiCatalog.length > 0) {
+            setCatalog(apiCatalog);
+          } else {
+            setCatalog(STATIC_FALLBACK_PRODUCTS);
+          }
+
+          if (apiNews && apiNews.length > 0) {
+            setNews(apiNews);
+          } else {
+            setNews(STATIC_FALLBACK_NEWS[lang] || STATIC_FALLBACK_NEWS.fa);
+          }
+        }
+      } catch (err) {
+        console.warn('Using portal fallback state:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
-  }, []);
 
-  const handleLogout = () => {
-    setActiveUser(null);
-    localStorage.removeItem('rec_user_session');
-    setActiveTab('catalog');
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, [lang]);
+
+  // دسته‌بندی‌های یکتا
+  const categories = useMemo(() => {
+    const list = Array.from(new Set(catalog.map((p) => p.category)));
+    return ['all', ...list];
+  }, [catalog]);
+
+  // فیلتر هوشمند محصولات
+  const filteredProducts = useMemo(() => {
+    return catalog.filter((product) => {
+      const matchCat = selectedCategory === 'all' || product.category === selectedCategory;
+      const term = searchTerm.toLowerCase();
+      const matchSearch =
+        product.name.toLowerCase().includes(term) ||
+        product.hsCode.toLowerCase().includes(term) ||
+        (product.specs && product.specs.toLowerCase().includes(term)) ||
+        (product.standard && product.standard.toLowerCase().includes(term));
+      return matchCat && matchSearch;
+    });
+  }, [catalog, selectedCategory, searchTerm]);
+
+  // مدیریت باز کردن مودال RFQ
+  const handleOpenRfq = (product?: CatalogProduct) => {
+    setSelectedProductForRfq(product || catalog[0] || null);
+    setRfqStatus('idle');
+    setRfqModalOpen(true);
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // ثبت فرم RFQ
+  const handleRfqSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail || !loginPassword) return;
+    if (!selectedProductForRfq) return;
 
-    if (loginEmail === 'admin@rec-trade.com' && loginPassword === 'Admin@2026!Rec') {
-      const adminSession: RecProfile = {
-        id: 'admin-1',
-        companyName: 'REC Platform Central Authority',
-        email: 'admin@rec-trade.com',
-        country: 'IR',
-        taxId: '10100000000',
-        kybStatus: 'VERIFIED',
-        isGoldenList: true,
-        role: 'ADMIN',
+    setRfqStatus('submitting');
+    try {
+      const payload: CreateRfqPayload = {
+        companyName: rfqForm.companyName,
+        productId: selectedProductForRfq.id,
+        productName: selectedProductForRfq.name,
+        volumeMT: Number(rfqForm.volumeMT),
+        destinationPort: rfqForm.destinationPort,
+        sourceLang: lang,
       };
-      setActiveUser(adminSession);
-      localStorage.setItem('rec_user_session', JSON.stringify(adminSession));
-      setActiveTab('admin');
-      setAuthModal(null);
-      setLoginPassword('');
-      return;
+
+      await submitRfq(payload);
+      setRfqStatus('success');
+      setTimeout(() => {
+        setRfqModalOpen(false);
+        setRfqStatus('idle');
+      }, 2500);
+    } catch (err) {
+      console.error(err);
+      setRfqStatus('error');
     }
-
-    const session: RecProfile = {
-      id: `comp-${Date.now()}`,
-      companyName: loginEmail.includes('ru') ? 'ООО Трейд Экспресс' : 'شرکت بازرگانی توسعه پارس',
-      email: loginEmail,
-      country: loginEmail.includes('ru') ? 'RU' : 'IR',
-      taxId: loginEmail.includes('ru') ? '7701234567' : '10103456789',
-      kybStatus: 'VERIFIED',
-      isGoldenList: true,
-      role: 'COMPANY',
-    };
-
-    setActiveUser(session);
-    localStorage.setItem('rec_user_session', JSON.stringify(session));
-    setAuthModal(null);
-    setLoginPassword('');
-  };
-
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!regName || !regEmail || !regTaxId || !regPassword) return;
-
-    const newCompany = {
-      id: `comp-${Date.now()}`,
-      name: regName,
-      country: regCountry,
-      taxId: regTaxId,
-      email: regEmail,
-      phone: regPhone,
-      kybStatus: 'PENDING' as const,
-      isGoldenList: false,
-    };
-
-    setPendingCompanies((prev) => [newCompany, ...prev]);
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString(),
-        action: 'REGISTER',
-        actorEmail: regEmail,
-        details: `New company "${regName}" (${regCountry}) submitted KYB profile.`,
-      },
-      ...prev,
-    ]);
-
-    const session: RecProfile = {
-      id: newCompany.id,
-      companyName: regName,
-      email: regEmail,
-      country: regCountry,
-      taxId: regTaxId,
-      kybStatus: 'PENDING',
-      isGoldenList: false,
-      role: 'COMPANY',
-    };
-
-    setActiveUser(session);
-    localStorage.setItem('rec_user_session', JSON.stringify(session));
-    setAuthModal(null);
-    setRegName('');
-    setRegEmail('');
-    setRegPassword('');
-    setRegTaxId('');
-    setRegPhone('');
-  };
-
-  const handleRfqSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeUser) return;
-
-    const rfqId = `RFQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    setRfqSuccess(rfqId);
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString(),
-        action: 'RFQ_CREATED',
-        actorEmail: activeUser.email,
-        details: `RFQ ${rfqId} submitted for ${selectedProduct} (${volumeMt} MT) by ${activeUser.companyName}`,
-      },
-      ...prev,
-    ]);
-  };
-
-  const handleUpdateKyb = (companyId: string, newStatus: 'VERIFIED' | 'REJECTED') => {
-    setPendingCompanies((prev) =>
-      prev.map((c) => (c.id === companyId ? { ...c, kybStatus: newStatus } : c))
-    );
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString(),
-        action: 'KYB_UPDATE',
-        actorEmail: activeUser?.email || 'admin@rec-trade.com',
-        details: `Company ID ${companyId} status changed to ${newStatus}.`,
-      },
-      ...prev,
-    ]);
   };
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-      {/* هدر */}
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+    <div className={`min-h-screen bg-slate-900 text-slate-100 ${isRtl ? 'rtl' : 'ltr'}`} dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* 1. نوار اعلانات و شاخص‌های زنده بازار و گمرک */}
+      <section className="bg-slate-950 border-b border-slate-800 text-xs py-2 px-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="font-semibold text-emerald-400">{t.corridorStatus}:</span>
+            <span className="text-slate-300">{t.tickerRates}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-slate-400">زبان / Язык / Lang:</label>
+            <div className="inline-flex rounded-md shadow-sm border border-slate-700 overflow-hidden">
+              <button
+                onClick={() => setLang('fa')}
+                className={`px-2.5 py-1 text-xs font-medium transition ${
+                  lang === 'fa' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                فارسی
+              </button>
+              <button
+                onClick={() => setLang('ru')}
+                className={`px-2.5 py-1 text-xs font-medium transition ${
+                  lang === 'ru' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                Русский
+              </button>
+              <button
+                onClick={() => setLang('en')}
+                className={`px-2.5 py-1 text-xs font-medium transition ${
+                  lang === 'en' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. سربرگ اصلی پورتال (Navigation Bar) */}
+      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-emerald-600 flex items-center justify-center font-bold text-lg text-white">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-slate-950 text-xl shadow-lg shadow-emerald-500/20">
               REC
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-white">{t.siteTitle}</h1>
-              <p className="text-xs text-slate-400">{t.siteSubtitle}</p>
+              <h1 className="text-lg font-bold text-white tracking-wide">REC Trade Portal</h1>
+              <p className="text-xs text-slate-400">Iran–Russia Bilateral B2B Ecosystem</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* انتخاب زبان */}
-            <div className="flex rounded-md bg-slate-800 p-1 border border-slate-700 text-xs">
-              {(['fa', 'ru', 'en'] as Lang[]).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className={`px-2.5 py-1 rounded transition ${
-                    lang === l ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            {/* پروفایل / ورود */}
-            {activeUser ? (
-              <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
-                <div>
-                  <div className="font-semibold text-white flex items-center gap-2">
-                    {activeUser.companyName}
-                    {activeUser.role === 'ADMIN' && (
-                      <span className="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.5 rounded border border-rose-500/30">
-                        {t.adminBadge}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span
-                      className={`inline-block w-2 h-2 rounded-full ${
-                        activeUser.kybStatus === 'VERIFIED' ? 'bg-emerald-400' : 'bg-amber-400'
-                      }`}
-                    />
-                    <span className="text-[11px] text-slate-300">
-                      {activeUser.kybStatus === 'VERIFIED'
-                        ? t.kybVerified
-                        : activeUser.kybStatus === 'REJECTED'
-                        ? t.kybRejected
-                        : t.kybPending}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="text-rose-400 hover:text-rose-300 text-xs border border-rose-900/50 hover:bg-rose-950 px-2 py-1 rounded transition"
-                >
-                  {t.logout}
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setAuthModal('login')}
-                  className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-medium px-3.5 py-2 rounded-lg transition"
-                >
-                  {t.login}
-                </button>
-                <button
-                  onClick={() => setAuthModal('register')}
-                  className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3.5 py-2 rounded-lg transition"
-                >
-                  {t.registerKyb}
-                </button>
-              </div>
-            )}
+            <a
+              href="#catalog"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700"
+            >
+              {t.viewCatalog}
+            </a>
+            <button
+              onClick={() => handleOpenRfq()}
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-700/30 transition"
+            >
+              {t.submitRfqBtn}
+            </button>
           </div>
         </div>
       </header>
 
-      {/* محتوا */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-8 flex-1">
-        <div className="flex border-b border-slate-800 mb-8 gap-6 text-sm">
-          <button
-            onClick={() => setActiveTab('catalog')}
-            className={`pb-3 font-semibold transition border-b-2 ${
-              activeTab === 'catalog'
-                ? 'border-emerald-500 text-emerald-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {t.tabCatalog}
-          </button>
-          <button
-            onClick={() => setActiveTab('rfq')}
-            className={`pb-3 font-semibold transition border-b-2 ${
-              activeTab === 'rfq'
-                ? 'border-emerald-500 text-emerald-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {t.tabRfq}
-          </button>
-          {activeUser?.role === 'ADMIN' && (
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`pb-3 font-semibold transition border-b-2 ${
-                activeTab === 'admin'
-                  ? 'border-rose-500 text-rose-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
+      {/* 3. بخش ورودی و موتور جستجوی هوشمند تجاری (Hero & Gateway) */}
+      <section className="relative py-16 px-4 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 border-b border-slate-800">
+        <div className="max-w-5xl mx-auto text-center">
+          <span className="inline-block py-1 px-3 mb-4 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+            Eurasian Corridor Trade Engine
+          </span>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-4">
+            {t.portalTitle}
+          </h2>
+          <p className="text-base md:text-lg text-slate-400 max-w-3xl mx-auto mb-8">
+            {t.portalSubtitle}
+          </p>
+
+          {/* موتور جستجوی پورتال با پشتیبانی از HS Code */}
+          <div className="bg-slate-800/90 p-3 rounded-2xl border border-slate-700 shadow-2xl flex flex-col md:flex-row gap-3">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t.searchPlaceholder}
+              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
-              {t.tabAdmin}
+              <option value="all">{t.allCategories}</option>
+              {categories.filter((c) => c !== 'all').map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                const el = document.getElementById('catalog');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-emerald-600/30"
+            >
+              جستجو و تطبیق
             </button>
-          )}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. ارکان چهارگانه پورتال (Four Pillars of Cross-Border Trade) */}
+      <section className="py-12 px-4 max-w-7xl mx-auto">
+        <div className="text-center mb-10">
+          <h3 className="text-2xl font-bold text-white mb-2">{t.pillarsTitle}</h3>
+          <div className="w-16 h-1 bg-emerald-500 mx-auto rounded"></div>
         </div>
 
-        {/* کاتالوگ */}
-        {activeTab === 'catalog' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/80 hover:border-emerald-500/60 transition group">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-emerald-500 group-hover:text-slate-950 transition">
+              01
+            </div>
+            <h4 className="text-lg font-bold text-white mb-2">{t.pillar1Title}</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">{t.pillar1Desc}</p>
+          </div>
+
+          <div className="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/80 hover:border-emerald-500/60 transition group">
+            <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-teal-500 group-hover:text-slate-950 transition">
+              02
+            </div>
+            <h4 className="text-lg font-bold text-white mb-2">{t.pillar2Title}</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">{t.pillar2Desc}</p>
+          </div>
+
+          <div className="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/80 hover:border-emerald-500/60 transition group">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-indigo-500 group-hover:text-slate-950 transition">
+              03
+            </div>
+            <h4 className="text-lg font-bold text-white mb-2">{t.pillar3Title}</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">{t.pillar3Desc}</p>
+          </div>
+
+          <div className="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/80 hover:border-emerald-500/60 transition group">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-amber-500 group-hover:text-slate-950 transition">
+              04
+            </div>
+            <h4 className="text-lg font-bold text-white mb-2">{t.pillar4Title}</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">{t.pillar4Desc}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. کاتالوگ ارزیابی‌شده و استعلام کالا (Verified Golden Catalog) */}
+      <section id="catalog" className="py-12 px-4 max-w-7xl mx-auto border-t border-slate-800">
+        <div className="flex flex-wrap justify-between items-end mb-8 gap-4">
           <div>
-            {!activeUser && (
-              <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex flex-wrap items-center justify-between gap-3">
-                <span>{t.catalogNotice}</span>
-                <button
-                  onClick={() => setAuthModal('login')}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs transition"
-                >
-                  {t.loginToOrder}
-                </button>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080251</span>
-                    <span className="text-xs text-slate-400">{t.p1Origin}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t.p1Name}</h3>
-                  <p className="text-xs text-slate-300">{t.p1Desc}</p>
-                </div>
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{t.minVolume}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedProduct('pistachio-akbari');
-                      setActiveTab('rfq');
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-xs transition"
-                  >
-                    {t.rfqBtn}
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded">HS: 080410</span>
-                    <span className="text-xs text-slate-400">{t.p2Origin}</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t.p2Name}</h3>
-                  <p className="text-xs text-slate-300">{t.p2Desc}</p>
-                </div>
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{t.minVolume}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedProduct('dates-mazafati');
-                      setActiveTab('rfq');
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-xs transition"
-                  >
-                    {t.rfqBtn}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Verified Commodities</span>
+            <h3 className="text-2xl md:text-3xl font-bold text-white mt-1">{t.viewCatalog}</h3>
           </div>
-        )}
+          <span className="text-sm text-slate-400">
+            نمایش {filteredProducts.length} کالای واجد شرایط توافق EAEU
+          </span>
+        </div>
 
-        {/* فرم استعلام RFQ */}
-        {activeTab === 'rfq' && (
-          <div className="max-w-2xl mx-auto border border-slate-800 bg-slate-950/60 p-8 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-2">{t.rfqTitle}</h2>
-            <p className="text-xs text-slate-400 mb-6">{t.rfqSubtitle}</p>
-
-            {rfqSuccess && (
-              <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-sm">
-                {t.rfqSuccessPrefix} <strong className="font-mono text-white">{rfqSuccess}</strong>
-              </div>
-            )}
-
-            {!activeUser ? (
-              <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-sm text-slate-300 mb-4">{t.rfqLoginPrompt}</p>
-                <button
-                  onClick={() => setAuthModal('login')}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition"
-                >
-                  {t.loginToAccount}
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleRfqSubmit} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-slate-300 mb-1.5 font-medium">{t.productLabel}</label>
-                  <select
-                    value={selectedProduct}
-                    onChange={(e) => setSelectedProduct(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="pistachio-akbari">{t.p1Name} (HS 080251)</option>
-                    <option value="dates-mazafati">{t.p2Name} (HS 080410)</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-300 mb-1.5 font-medium">{t.volumeLabel}</label>
-                    <input
-                      type="number"
-                      value={volumeMt}
-                      onChange={(e) => setVolumeMt(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-300 mb-1.5 font-medium">{t.incotermsLabel}</label>
-                    <select
-                      value={incoterms}
-                      onChange={(e) => setIncoterms(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                    >
-                      <option value="FCA">FCA (Anzali / Astara)</option>
-                      <option value="CPT">CPT (Astrakhan / Moscow)</option>
-                      <option value="FOB">FOB (Amirabad Port)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 mb-1.5 font-medium">{t.targetPriceLabel}</label>
-                  <input
-                    type="text"
-                    value={targetPrice}
-                    onChange={(e) => setTargetPrice(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition"
-                >
-                  {t.submitRfq}
-                </button>
-              </form>
-            )}
+        {filteredProducts.length === 0 ? (
+          <div className="bg-slate-800/40 rounded-2xl p-12 text-center border border-slate-700 text-slate-400">
+            موردی مطابق با عبارت جستجو یافت نشد.
           </div>
-        )}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((prod) => (
+              <div
+                key={prod.id}
+                className="bg-slate-800/70 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between hover:border-emerald-500/70 hover:shadow-xl hover:shadow-emerald-950/30 transition"
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-xs font-mono font-bold bg-slate-900 text-emerald-400 px-2.5 py-1 rounded border border-emerald-900/50">
+                      HS: {prod.hsCode}
+                    </span>
+                    <span className="text-xs bg-emerald-900/50 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-700/50">
+                      {t.verifiedBadge}
+                    </span>
+                  </div>
 
-        {/* پنل مدیریت ادمین */}
-        {activeTab === 'admin' && activeUser?.role === 'ADMIN' && (
-          <div className="space-y-8">
-            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
-              <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
-                <span>{t.adminQueueTitle}</span>
-                <span className="text-xs font-normal text-slate-400">
-                  {t.companiesCount} {pendingCompanies.length}
-                </span>
-              </h2>
+                  <h4 className="text-xl font-bold text-white mb-2">{prod.name}</h4>
+                  <p className="text-xs text-slate-400 mb-4 font-mono">{prod.category} | {prod.origin}</p>
 
-              <div className="overflow-x-auto">
-                <table className={`w-full text-xs ${isRtl ? 'text-right' : 'text-left'}`}>
-                  <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
-                    <tr>
-                      <th className="p-3">{t.thCompany}</th>
-                      <th className="p-3">{t.thCountry}</th>
-                      <th className="p-3">{t.thTaxId}</th>
-                      <th className="p-3">{t.thContact}</th>
-                      <th className="p-3">{t.thStatus}</th>
-                      <th className="p-3 text-center">{t.thAction}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {pendingCompanies.map((c) => (
-                      <tr key={c.id} className="hover:bg-slate-900/50">
-                        <td className="p-3 font-semibold text-white">{c.name}</td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] ${
-                              c.country === 'IR' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'
-                            }`}
-                          >
-                            {c.country === 'IR' ? t.iran : t.russia}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono">{c.taxId}</td>
-                        <td className="p-3 text-slate-400">
-                          <div>{c.email}</div>
-                          <div className="text-[10px] text-slate-500">{c.phone}</div>
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                              c.kybStatus === 'VERIFIED'
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : c.kybStatus === 'REJECTED'
-                                ? 'bg-rose-500/20 text-rose-400'
-                                : 'bg-amber-500/20 text-amber-300'
-                            }`}
-                          >
-                            {c.kybStatus === 'VERIFIED'
-                              ? t.kybVerified
-                              : c.kybStatus === 'REJECTED'
-                              ? t.kybRejected
-                              : t.kybPending}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleUpdateKyb(c.id, 'VERIFIED')}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs transition"
-                            >
-                              {t.verifyAction}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateKyb(c.id, 'REJECTED')}
-                              className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-xs transition"
-                            >
-                              {t.rejectAction}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* لاگ وقایع */}
-            <div className="border border-slate-800 bg-slate-950/60 p-6 rounded-2xl">
-              <h2 className="text-base font-bold text-white mb-4">{t.adminLogsTitle}</h2>
-              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between gap-4 text-xs font-mono"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-slate-500 text-[11px]">{log.timestamp}</span>
-                      <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
-                        {log.action}
-                      </span>
-                      <span className="text-slate-300">{log.details}</span>
+                  <div className="bg-slate-900/80 rounded-xl p-3.5 space-y-2 mb-4 text-xs border border-slate-800">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">استاندارد:</span>
+                      <span className="font-semibold text-slate-200">{prod.standard}</span>
                     </div>
-                    <span className="text-slate-500 text-[11px] shrink-0">{log.actorEmail}</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">مشخصات فنی:</span>
+                      <span className="text-slate-300 truncate max-w-[200px]" title={prod.specs}>
+                        {prod.specs}
+                      </span>
+                    </div>
+                    {prod.priceIndication && (
+                      <div className="flex justify-between text-emerald-400 font-semibold pt-1 border-t border-slate-800">
+                        <span>مظنه مرجع:</span>
+                        <span>{prod.priceIndication}</span>
+                      </div>
+                    )}
                   </div>
-                ))}
+                </div>
+
+                <button
+                  onClick={() => handleOpenRfq(prod)}
+                  className="w-full py-2.5 bg-slate-700 hover:bg-emerald-600 text-white font-medium text-xs rounded-xl transition duration-200 shadow"
+                >
+                  {t.submitRfqBtn}
+                </button>
               </div>
-            </div>
+            ))}
           </div>
         )}
-      </main>
+      </section>
 
-      {/* مودال احراز هویت */}
-      {authModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-sm text-white">
-                {authModal === 'login' ? t.modalLoginTitle : t.modalRegTitle}
-              </h3>
-              <button onClick={() => setAuthModal(null)} className="text-slate-400 hover:text-white text-sm">
-                ✕
-              </button>
+      {/* 6. مرکز داده‌ها و تحلیل‌های بازرگانی (Trade Intelligence & News Hub) */}
+      <section className="py-12 px-4 max-w-7xl mx-auto border-t border-slate-800">
+        <div className="mb-8">
+          <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Intelligence & Insights</span>
+          <h3 className="text-2xl md:text-3xl font-bold text-white mt-1">{t.newsHubTitle}</h3>
+          <p className="text-sm text-slate-400 mt-1">{t.newsHubSubtitle}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {news.map((item) => (
+            <div
+              key={item.id}
+              className="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-5 flex flex-col justify-between hover:bg-slate-800 transition"
+            >
+              <div>
+                <div className="flex justify-between items-center text-xs text-slate-400 mb-3">
+                  <span className="text-emerald-400 font-medium px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-900/50">
+                    {item.category}
+                  </span>
+                  <span>{item.date}</span>
+                </div>
+                <h4 className="text-base font-bold text-white mb-2 leading-snug hover:text-emerald-400 transition cursor-pointer">
+                  {item.title}
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed mb-4">{item.summary}</p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-700/50 text-xs font-semibold text-emerald-400 flex items-center justify-between">
+                <span>مشاهده گزارش کامل و بخشنامه</span>
+                <span>←</span>
+              </div>
             </div>
+          ))}
+        </div>
+      </section>
 
-            {authModal === 'login' ? (
-              <form onSubmit={handleLoginSubmit} className="space-y-4 mt-5 text-xs">
-                <div>
-                  <label className="block text-slate-300 mb-1.5">{t.emailLabel}</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="admin@rec-trade.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1.5">{t.passwordLabel}</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
-                >
-                  {t.modalLoginBtn}
-                </button>
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setAuthModal('register')}
-                    className="text-emerald-400 hover:underline text-xs"
-                  >
-                    {t.modalSwitchToReg}
-                  </button>
-                </div>
-              </form>
+      {/* 7. فوتر رسمی و پورتال موسساتی */}
+      <footer className="border-t border-slate-800 bg-slate-950 py-10 px-4 mt-12 text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div>
+            <p className="font-bold text-white text-sm mb-1">Russia–Iran Economic Council (REC) B2B Gateway</p>
+            <p className="text-slate-500">پلتفرم راهبردی توسعه صادرات، تطبیق مقررات گمرکی و سورسینگ کالا</p>
+          </div>
+          <div className="flex gap-6 text-slate-400">
+            <span>سازمان توسعه تجارت</span>
+            <span>اتحادیه اقتصادی اوراسیا (EAEU)</span>
+            <span>کریدور بین‌المللی شمال–جنوب (INSTC)</span>
+          </div>
+          <div className="text-slate-500">
+            © {new Date().getFullYear()} REC Platform. All rights reserved.
+          </div>
+        </div>
+      </footer>
+
+      {/* 8. مودال رسمی ثبت RFQ */}
+      {rfqModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button
+              onClick={() => setRfqModalOpen(false)}
+              className="absolute top-4 left-4 text-slate-400 hover:text-white text-xl"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-lg font-bold text-white mb-1">{t.rfqModalTitle}</h3>
+            {selectedProductForRfq && (
+              <p className="text-xs text-emerald-400 mb-4 font-mono">
+                {selectedProductForRfq.name} (HS: {selectedProductForRfq.hsCode})
+              </p>
+            )}
+
+            {rfqStatus === 'success' ? (
+              <div className="bg-emerald-950/80 border border-emerald-700 text-emerald-300 p-4 rounded-xl text-center text-sm font-semibold my-6">
+                ✓ {t.successMsg}
+              </div>
             ) : (
-              <form onSubmit={handleRegisterSubmit} className="space-y-3 mt-4 text-xs">
+              <form onSubmit={handleRfqSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-slate-300 mb-1">{t.companyNameLabel}</label>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    {t.companyLabel}
+                  </label>
                   <input
                     type="text"
                     required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                    placeholder="مثال: بازرگانی اوراسیا ترانس / ООО «Евразия Трейд»"
+                    value={rfqForm.companyName}
+                    onChange={(e) => setRfqForm({ ...rfqForm, companyName: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 mb-1">{t.countryLabel}</label>
-                    <select
-                      value={regCountry}
-                      onChange={(e) => setRegCountry(e.target.value as 'IR' | 'RU')}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                    >
-                      <option value="IR">{t.iran}</option>
-                      <option value="RU">{t.russia}</option>
-                    </select>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      {t.volumeLabel}
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={rfqForm.volumeMT}
+                      onChange={(e) => setRfqForm({ ...rfqForm, volumeMT: Number(e.target.value) })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
                   </div>
+
                   <div>
-                    <label className="block text-slate-300 mb-1">{t.taxIdLabel}</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      {t.portLabel}
+                    </label>
                     <input
                       type="text"
                       required
-                      value={regTaxId}
-                      onChange={(e) => setRegTaxId(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
+                      value={rfqForm.destinationPort}
+                      onChange={(e) => setRfqForm({ ...rfqForm, destinationPort: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.emailLabel}</label>
-                  <input
-                    type="email"
-                    required
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
+
+                {rfqStatus === 'error' && (
+                  <p className="text-xs text-rose-400">{t.errorMsg}</p>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setRfqModalOpen(false)}
+                    className="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded-lg hover:bg-slate-700"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={rfqStatus === 'submitting'}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-lg disabled:opacity-50"
+                  >
+                    {rfqStatus === 'submitting' ? 'در حال ارسال...' : t.send}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.phoneLabel}</label>
-                  <input
-                    type="tel"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 mb-1">{t.passwordLabel}</label>
-                  <input
-                    type="password"
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition"
-                >
-                  {t.modalRegBtn}
-                </button>
               </form>
             )}
           </div>
         </div>
       )}
-
-      {/* فوتر */}
-      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        REC Platform &copy; 2026 — Russia-Iran Cross-Border Settlement & Trade Gateway
-      </footer>
     </div>
   );
 }
